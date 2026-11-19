@@ -33,7 +33,7 @@ const HELMETS = [["Season","2025"],["Discoball","2025"],["Dark Glitter","2025"],
     const el = document.createElement("div"); el.className = "hel-card"; el.setAttribute("data-helmet-item", "");
     el.innerHTML = `<svg class="hel-frame" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M1 1H99V87H64L58 99H1Z"/></svg>
       <div class="hel-reveal" aria-hidden="true"></div>
-      <div class="hel-img"><img src="assets/img/h${String(i+1).padStart(2,"0")}.webp?v=1c" width="384" height="384" loading="lazy" alt="${name} helmet, ${yr}"></div>
+      <div class="hel-img"><img src="assets/img/h${String(i+1).padStart(2,"0")}.webp?v=1d" width="384" height="384" loading="lazy" alt="${name} helmet, ${yr}"></div>
       <div class="hel-label"><span>${name}</span><b>${yr}</b></div>
       <a href="#helmets" aria-label="${name} helmet ${yr}"></a>`;
     cols[i % n].appendChild(el);
@@ -94,7 +94,7 @@ let heroActive = true;
 function heroReveal(){
   const media = $(".hero-media"), cvs = $(".hero-canvas"), ctx = cvs.getContext("2d");
   const mask = document.createElement("canvas"), m = mask.getContext("2d");
-  const helmet = new Image(); helmet.decoding = "async"; helmet.src = "assets/img/hero_helmet.webp?v=1c";
+  const helmet = new Image(); helmet.decoding = "async"; helmet.src = "assets/img/hero_helmet.webp?v=1d";
   let W = 0, H = 0, dpr = Math.min(devicePixelRatio || 1, 1.5), ready = false, inView = true;
   const mouse = { x: -9999, y: -9999 }, eased = { x: -9999, y: -9999 };
   let op = [.5, .4];
@@ -316,6 +316,9 @@ function reducedSetup(){
   $(".hero-canvas").style.display = "none";
   $$(".signature path").forEach(p => { p.style.strokeDasharray = "none"; });
   gsap.set(".hero-media", { width: "100%", height: "100%" });
+  $(".hero .signature").style.display = "none";
+  const k = innerWidth <= 479 ? .3 : innerWidth <= 991 ? .5 : 1;
+  $$(".fan-c").forEach((c, i) => { const p = FAN[i]; c.style.zIndex = p.z; gsap.set(c, { x: p.x * k + "rem", y: p.y * (k < 1 ? .6 : 1) + "rem", scale: p.s, rotation: p.r }); });
 }
 
 /* ---------- init (order like the original) ---------- */
