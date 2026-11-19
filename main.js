@@ -104,8 +104,9 @@ function heroReveal(){
   let W = 0, H = 0, dpr = Math.min(devicePixelRatio || 1, DESK ? 1.25 : 1.5), inView = true, gl = null, ctx = null, mask, m, helmet, ready = false;
   const mouse = { x: -9, y: -9 }, eased = { x: -9, y: -9 }, par = { x: 0, y: 0 }, parT = { x: 0, y: 0 };
   let op = [.5, .4];
+  let q = 1, slow = 0, last = 0;   // adaptive render scale: drops on slow (software) GPUs, stays 1 on real hardware
   const size = () => { op = getComputedStyle(faceImg).objectPosition.split(" ").map(v => (parseFloat(v) || 50) / 100);
-    const r = media.getBoundingClientRect(); W = Math.round(r.width * dpr); H = Math.round(r.height * dpr);
+    const r = media.getBoundingClientRect(), k = gl ? Math.min(dpr, Math.sqrt(2.1e6 / (r.width * r.height))) * q : dpr; W = Math.round(r.width * k); H = Math.round(r.height * k);
     if (gl) gl.resize(W, H); else if (ctx) { cvs.width = mask.width = W; cvs.height = mask.height = H; } };
   // pointer in 0..1 of the hero media box
   if (FINE) media.parentElement.addEventListener("pointermove", e => { if (auto) return; const r = media.getBoundingClientRect();
@@ -130,7 +131,7 @@ function heroReveal(){
   addEventListener("resize", () => size());
   heroReveal.start = async () => {
     const canGL = (() => { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl")); } catch (e) { return false; } })();
-    try { if (!canGL) throw 0; await useGL(); } catch (e) { gl = null; await use2D(); }
+    try { if (!canGL || /[?&]gl=0/.test(location.search)) throw 0; await useGL(); } catch (e) { gl = null; await use2D(); }
     startSweep();
   };
   ScrollTrigger.create({ trigger: ".hero", start: "top top", end: "bottom top", onToggle: s => inView = s.isActive });
@@ -148,8 +149,10 @@ function heroReveal(){
       blobs.push([eased.x + Math.cos(a) * off / asp, eased.y + Math.sin(a * 1.2) * off, R * (.55 + .35 * Math.sin(t * 1.7 + k * 2))]);
     }
     if (gl) {
+      const now = performance.now(), dt = now - last; last = now;
+      if (dt > 28 && dt < 200) { if (++slow > 20 && q > .5) { q = Math.max(.5, q - .2); slow = 0; size(); } } else slow = Math.max(0, slow - 1);
       const r = media.getBoundingClientRect();
-      gl.render({ blobs: blobs.map(b => [b[0], b[1], b[2] * .42]), op, par: [par.x, par.y], scale: gsap.getProperty(faceImg, "scale") || 1, cssW: r.width, cssH: r.height, t });
+      gl.render({ blobs: blobs.map(b => [b[0], b[1], b[2] * .42]), op, par: [par.x, par.y], scale: gsap.getProperty(faceImg, "scale") || 1, cssW: r.width, cssH: r.height, t, fade: parseFloat(getComputedStyle(document.documentElement).fontSize) * 3 });
       return;
     }
     m.globalCompositeOperation = "destination-out"; m.fillStyle = "rgba(0,0,0,.035)"; m.fillRect(0, 0, W, H);
@@ -322,13 +325,15 @@ function navTheme(){
 }
 function scrollIndicator(){
   const bar = $(".scroll-ind"), th = $("i", bar); let hide;
-  const upd = () => { const dh = document.documentElement.scrollHeight, vh = innerHeight, h = Math.max(.1, Math.min(.25, vh / dh));
+  let dh = 0, raf = 0; const measure = () => { dh = document.documentElement.scrollHeight; }; measure();
+  addEventListener("resize", measure); ScrollTrigger.addEventListener("refresh", measure);
+  const upd = () => { raf = 0; const vh = innerHeight, h = Math.max(.1, Math.min(.25, vh / dh));
     th.style.height = h * 100 + "%"; const p = scrollY / Math.max(1, dh - vh);
     gsap.to(th, { y: p * (bar.offsetHeight * (1 - h)), duration: .3, ease: "power2.out", overwrite: true });
     gsap.to(bar, { autoAlpha: 1, duration: .5, overwrite: "auto" }); clearTimeout(hide);
     hide = setTimeout(() => gsap.to(bar, { autoAlpha: 0, duration: .5 }), 500);
     html.classList.toggle("at-top", scrollY < 4); };
-  addEventListener("scroll", upd, { passive: true }); html.classList.toggle("at-top", scrollY < 4);
+  addEventListener("scroll", () => { if (!raf) raf = requestAnimationFrame(upd); }, { passive: true }); html.classList.toggle("at-top", scrollY < 4);
 }
 function menu(){
   const btn = $(".btn-menu"), m = $("#menu"); let open = false;

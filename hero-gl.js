@@ -4,34 +4,36 @@
    and depth parallax from a generated depth map so the head moves in 3D with the pointer. */
 (function(){
 window.RVHeroGL = function(canvas, imgs){
-  const gl = canvas.getContext("webgl", { antialias: false, alpha: false, premultipliedAlpha: false, powerPreference: "low-power" });
+  const gl = canvas.getContext("webgl", { antialias: false, alpha: true, premultipliedAlpha: true, powerPreference: "low-power" });
   if (!gl) throw new Error("no webgl");
   const VS = "attribute vec2 p;varying vec2 v;void main(){v=p*.5+.5;gl_Position=vec4(p,0.,1.);}";
-  const TRAIL = `precision mediump float;varying vec2 v;uniform sampler2D prev;uniform vec2 res;uniform vec2 m[5];uniform float r[5];uniform float dec;uniform float t;
+  // trail pass (quarter res): r = liquid mask, g/b = its gradient (for refraction), a = edge noise
+  const TRAIL = `precision mediump float;varying vec2 v;uniform sampler2D prev;uniform vec2 res,tpx;uniform vec2 m[5];uniform float r[5];uniform float dec;uniform float t;
   float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
   void main(){vec2 asp=vec2(res.x/res.y,1.);
     vec2 flow=vec2(n(v*4.+t*.35)-.5,n(v*4.+17.+t*.35)-.5)*.004;
     float a=texture2D(prev,v+flow).r*dec;
     float f=0.;for(int k=0;k<5;k++){vec2 d=(v-m[k])*asp;f+=r[k]*r[k]/(dot(d,d)+1e-4);}
-    a=max(a,clamp(f*.9,0.,1.));gl_FragColor=vec4(a,0.,0.,1.);}`;
-  const MAIN = `precision mediump float;varying vec2 v;uniform sampler2D face,helm,depth,trail;uniform vec2 res,op,par,px;uniform float ia,sc,t;
-  float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-  float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
+    a=max(a,clamp(f*.9,0.,1.));
+    float gx=texture2D(prev,v+vec2(tpx.x,0)).r-texture2D(prev,v-vec2(tpx.x,0)).r;
+    float gy=texture2D(prev,v+vec2(0,tpx.y)).r-texture2D(prev,v-vec2(0,tpx.y)).r;
+    float nz=n(v*asp*5.+t*.4);
+    gl_FragColor=vec4(a,clamp(.5+gx*2.,0.,1.),clamp(.5-gy*2.,0.,1.),nz);}`;
+  // main pass: 3-4 texture reads per pixel
+  const MAIN = `precision mediump float;varying vec2 v;uniform sampler2D face,helm,depth,trail;uniform vec2 res,op,par;uniform float ia,sc,fade;
   vec2 cover(vec2 u){float ca=res.x/res.y;vec2 f=ca>ia?vec2(1.,ia/ca):vec2(ca/ia,1.);f/=sc;return (1.-f)*op+u*f;}
   void main(){vec2 u=vec2(v.x,1.-v.y);vec2 ui=cover(u);
     float d=texture2D(depth,ui).r;vec2 up=ui+par*(d-.35)*vec2(.018,.012);
-    float m=texture2D(trail,v).r;float nz=(n(v*vec2(res.x/res.y,1.)*5.+t*.4)-.5)*.22;
-    float gx=texture2D(trail,v+vec2(px.x,0)).r-texture2D(trail,v-vec2(px.x,0)).r;
-    float gy=texture2D(trail,v+vec2(0,px.y)).r-texture2D(trail,v-vec2(0,px.y)).r;
-    vec2 g=vec2(gx,-gy);
-    float e=smoothstep(.40,.47,m+nz);float band=smoothstep(.30,.44,m+nz)*(1.-e);
+    vec4 T=texture2D(trail,v);float mm=T.r+(T.a-.5)*.22;vec2 g=(T.gb-.5)*.5;
+    float e=smoothstep(.40,.47,mm);float band=smoothstep(.30,.44,mm)*(1.-e);
     vec2 refr=g*.045*(band+.35*e);
-    vec3 fc=texture2D(face,up-refr*.6).rgb;vec3 hc=texture2D(helm,up+refr).rgb;
-    vec3 c=mix(fc,hc,e);
-    float rim=smoothstep(.0,.6,band)*(1.-smoothstep(.6,1.,band));
-    c=mix(c,vec3(.80,.80,.73),rim*.55);c+=vec3(1.)*pow(max(0.,dot(normalize(vec3(g*6.,1.)),normalize(vec3(-.4,.6,1.)))),24.)*band*.35;
-    gl_FragColor=vec4(c,1.);}`;
+    vec3 c=texture2D(face,up-refr*.6).rgb;
+    if(e+band>.001){vec3 hc=texture2D(helm,up+refr).rgb;c=mix(c,hc,e);
+      float rim=smoothstep(.0,.6,band)*(1.-smoothstep(.6,1.,band));
+      c=mix(c,vec3(.80,.80,.73),rim*.55);c+=vec3(pow(max(0.,dot(normalize(vec3(g*6.,1.)),normalize(vec3(-.4,.6,1.)))),24.)*band*.35);}
+    vec2 q=(u-vec2(.5,.55))/vec2(1.2,.95);float al=1.-smoothstep(.6,1.,length(q));al*=clamp(u.y*res.y/fade,0.,1.);
+    gl_FragColor=vec4(c*al,al);}`;
   const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
   const prog = fs => { const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p);
     if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error("link"); const U = {}; const nU = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
@@ -56,13 +58,13 @@ window.RVHeroGL = function(canvas, imgs){
       const src = fb[cur], dst = fb[1 - cur];
       gl.bindFramebuffer(gl.FRAMEBUFFER, dst.f); gl.viewport(0, 0, tw, th); gl.useProgram(PT.p);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, src.t); gl.uniform1i(PT.U.prev, 0);
-      gl.uniform2f(PT.U.res, s.cssW, s.cssH); gl.uniform1f(PT.U.dec, .968); gl.uniform1f(PT.U.t, s.t);
+      gl.uniform2f(PT.U.res, s.cssW, s.cssH); gl.uniform2f(PT.U.tpx, 1.5 / tw, 1.5 / th); gl.uniform1f(PT.U.dec, .968); gl.uniform1f(PT.U.t, s.t);
       const mm = [], rr = []; s.blobs.forEach(b => { mm.push(b[0], 1 - b[1]); rr.push(b[2]); });
       gl.uniform2fv(PT.U.m, mm); gl.uniform1fv(PT.U.r, rr); quad(PT);
       gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, canvas.width, canvas.height); gl.useProgram(PM.p);
       [[TF, "face"], [TH, "helm"], [TD, "depth"], [dst.t, "trail"]].forEach(([t, nm], i) => { gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, t); gl.uniform1i(PM.U[nm], i); });
       gl.uniform2f(PM.U.res, s.cssW, s.cssH); gl.uniform2f(PM.U.op, s.op[0], s.op[1]); gl.uniform2f(PM.U.par, s.par[0], s.par[1]);
-      gl.uniform2f(PM.U.px, 1.5 / tw, 1.5 / th); gl.uniform1f(PM.U.ia, 16 / 9); gl.uniform1f(PM.U.sc, s.scale); gl.uniform1f(PM.U.t, s.t);
+      gl.uniform1f(PM.U.ia, 16 / 9); gl.uniform1f(PM.U.sc, s.scale); gl.uniform1f(PM.U.fade, s.fade || 48);
       quad(PM); cur = 1 - cur;
     }
   };
