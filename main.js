@@ -396,6 +396,14 @@ function menu(){
   $$("a", m).forEach(a => a.addEventListener("click", () => set(false)));
   addEventListener("keydown", e => { if (e.key === "Escape" && open) { set(false); btn.focus(); } });
 }
+// silent loops: sources attached only when the card nears the viewport, paused when it leaves (and never played with reduced motion)
+function lazyVideos(){
+  const vs = $$("video[data-lazy-video]"); if (REDUCED || !vs.length || !("IntersectionObserver" in window)) return;
+  const io = new IntersectionObserver(es => es.forEach(e => { const v = e.target;
+    if (e.isIntersecting) { if (!v._src) { v._src = 1; $$("source", v).forEach(s => s.src = s.dataset.src); v.load(); } if (!REDUCED) v.play().catch(() => {}); }
+    else if (!v.paused) v.pause(); }), { rootMargin: "200px 0px" });
+  vs.forEach(v => io.observe(v));
+}
 function anchors(){
   $$('a[href^="#"]').forEach(a => a.addEventListener("click", e => { const id = a.getAttribute("href"); const t = id.length > 1 && $(id);
     if (!t && id !== "#top") return; e.preventDefault(); const el = id === "#top" ? 0 : t;
@@ -414,7 +422,7 @@ function reducedSetup(){
 /* ---------- init (order like the original) ---------- */
 async function init(){
   await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]);
-  splitAll(); menu(); anchors(); scrollIndicator();
+  splitAll(); menu(); anchors(); scrollIndicator(); lazyVideos();
   if (REDUCED) { reducedSetup(); $(".loader").remove(); document.body.classList.remove("is-loading"); navTheme(); return; }
   socialsFan(); heroToCard();
   velocityMarquee($(".mq-a"), -1, 40); velocityMarquee($(".mq-b"), 1, 40);
