@@ -3,18 +3,26 @@
 ## Images
 All photos in `assets/img/` were **generated for this demo** (AI image generation) and show a **fictional person** ("Rowan Vale")
 and fictional, unbranded helmets, suits and objects. They contain no third-party photographs, no real people and no real logos.
-- Hero portrait with and without helmet (aligned pair for the cursor reveal), B&W portrait, gallery photos, ON/OFF track images,
-  garage, 12 helmets (one generated sheet, cut into tiles), store photos, socials cards and footer portrait.
-- Brand-mark clean-up passes were made on three images (podium, cockpit, pit lane) to remove logo-like marks.
+- Hero portrait with and without helmet (aligned pair for the cursor reveal; the helmet chin was regenerated in v2 so it carries
+  no race number), a generated depth map of the portrait (`hero_depth.webp`, for the WebGL parallax), B&W portrait (message card),
+  gallery photos, ON/OFF track images, garage, socials cards and footer portrait.
+- 32 Hall of Fame helmets: each one generated as a 2x2 turntable sheet (four angles of the same invented livery) and packed into a
+  4-frame sprite (`ht01–ht32.webp`).
+- Store: the "Line Chaser" hoodie with an RV monogram and the "RV07" collector box are original designs for Rowan Vale.
+- Brand-mark clean-up passes (podium, cockpit headrest, pit-lane suit recoloured to lime/black, garage helmet letters) remove any
+  logo-like marks or third-party colours.
 
 ## Fonts
 - **Mona Sans** by GitHub: SIL Open Font License 1.1 (via Google Fonts), `fonts/monasans.woff2`.
 - **Instrument Serif** by Instrument: SIL Open Font License 1.1 (via Google Fonts), `fonts/instrumentserif.woff2`. Free stand-in for the commercial display serif of the reference.
-- **Caveat Brush** by Impallari Type: SIL Open Font License 1.1 (via Google Fonts), used for the handwritten "ON" and "Collabs".
+- **EMS Allure** single-line script by Sheldon B. Michaels (derivative of Allura by Rob Leuschke / TypeSETit), SIL Open Font License 1.1,
+  from the MIT-licensed `hersheytext` package. Used only at build time to produce the centre-line SVG paths of the handwritten
+  "ON", "OFF", "Collabs" and the "Rowan Vale" signature, which are drawn stroke by stroke with GSAP. No font file is shipped.
 
 ## Graphics
 - Topographic background (`assets/topo.svg`): generated procedurally for this project (d3-contour, ISC licence, used only at build time).
-- Signature, monogram, helmet line icon and fictional partner wordmarks: drawn for this project in SVG/CSS.
+- Monogram, helmet line icon, signature underline flourish and fictional partner wordmarks: drawn for this project in SVG/CSS.
+- Hero liquid reveal (`hero-gl.js`): plain WebGL shaders written for this project (no third-party 3D files or libraries).
 
 ## Libraries
 - [GSAP](https://gsap.com) 3.15 + ScrollTrigger + SplitText: free "Standard no-charge" GreenSock licence.
