@@ -139,7 +139,7 @@ function heroToCard(){
   const media = $(".hero-media"), target = $(".hero-target"), img = $(".hero-img");
   const tl = gsap.timeline({ scrollTrigger: { trigger: ".hero", start: "top top", end: () => `+=${innerHeight}`, scrub: true, invalidateOnRefresh: true } });
   tl.fromTo(media, { width: () => innerWidth, height: () => innerHeight }, { width: () => target.offsetWidth, height: () => target.offsetHeight, ease: "power1.inOut" }, 0)
-    .fromTo(img, { scale: 1, filter: "grayscale(0) sepia(0) brightness(1)" }, { scale: 1.15, filter: "grayscale(1) sepia(.3) hue-rotate(35deg) brightness(.82)", ease: "power1.inOut" }, 0)
+    .fromTo(img, { scale: 1, filter: "grayscale(0) sepia(0) hue-rotate(0deg) brightness(1)" }, { scale: 1.15, filter: "grayscale(1) sepia(0.3) hue-rotate(35deg) brightness(0.82)", ease: "power1.inOut", immediateRender: false }, 0)
     .fromTo(".hero-stick", { backgroundColor: "#f8f8f3" }, { backgroundColor: "#282c20", ease: "power1.inOut" }, 0)
     .to(".topo-hero", { opacity: 0, ease: "none", duration: .5 }, 0)
     .to(".next-race", { autoAlpha: 0, ease: "none", duration: .3 }, 0)
@@ -217,7 +217,7 @@ function helmetGrid(){
 
 /* ---------- 3.10 visor ---------- */
 function visor(){
-  gsap.fromTo("[data-visor]", { clipPath: "ellipse(70% 0% at 50% 0%)" }, { clipPath: "ellipse(70% 100% at 50% 0%)", ease: "none", scrollTrigger: { trigger: ".store", start: "top bottom", end: "bottom center", scrub: true } });
+  gsap.fromTo("[data-visor]", { clipPath: "ellipse(70% 0% at 50% 0%)" }, { clipPath: "ellipse(70% 100% at 50% 0%)", ease: "none", scrollTrigger: { trigger: ".store", start: "top bottom", end: "top 15%", scrub: true } });
   $$(".store-img img").forEach((im, i) => gsap.fromTo(im, { y: 0 }, { y: `-${2 + i * 2}rem`, ease: "none", scrollTrigger: { trigger: ".store", start: "top bottom", end: "bottom top", scrub: true } }));
 }
 
@@ -340,7 +340,7 @@ async function init(){
   await Promise.race([heroImg.decode ? heroImg.decode().catch(() => {}) : Promise.resolve(), new Promise(r => setTimeout(r, 1200))]);
   gsap.timeline({ delay: .35 })
     .to(".loader", { clipPath: "ellipse(0% 0% at 50% 50%)", duration: .8, ease: "expo.inOut", onComplete(){ $(".loader").remove(); document.body.classList.remove("is-loading"); } })
-    .fromTo([".hero-img", ".hero-canvas"], { scale: 1.08 }, { scale: 1, duration: 1.1, ease: "expo.out", clearProps: "scale" }, .35)
+    .fromTo(".hero-zoom", { scale: 1.08 }, { scale: 1, duration: 1.1, ease: "expo.out", clearProps: "scale" }, .35)
     .add(() => heroReveal.start && heroReveal.start(), .6);
 }
 init();
