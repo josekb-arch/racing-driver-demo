@@ -179,10 +179,15 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .hel-frame{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .hel-frame path{fill:#0c0c0d;stroke:currentColor;stroke-width:1.2;vector-effect:non-scaling-stroke}
 .hel-img{position:absolute;inset:8% 8% 18%;display:grid;place-items:center;transition:transform var(--dur) var(--ease)}
-.hel-spr{width:100%;aspect-ratio:1;overflow:hidden;mix-blend-mode:lighten}
+.hel-spr{position:relative;width:100%;aspect-ratio:1;overflow:hidden;mix-blend-mode:lighten}
 .hel-spr img{display:block;width:400%;max-width:none;height:100%;transform:translateX(0)}
-.hel-card:hover .hel-spr img,.hel-card:focus-within .hel-spr img,.hel-card.is-spin .hel-spr img{animation:helSpin 1s steps(4) infinite}
+.hel-spr .hel-b{position:absolute;left:0;top:0;opacity:0}
+/* turntable: frame k is held while frame k+1 cross-fades in on top, so the 4 views flow instead of jumping */
+.hel-card:hover .hel-spr img,.hel-card:focus-within .hel-spr img,.hel-card.is-spin .hel-spr img{animation:helSpin 2s steps(4) infinite}
+.hel-card:hover .hel-spr .hel-b,.hel-card:focus-within .hel-spr .hel-b,.hel-card.is-spin .hel-spr .hel-b{animation:helSpinB 2s infinite,helFade .5s ease-in-out infinite}
 @keyframes helSpin{to{transform:translateX(-100%)}}
+@keyframes helSpinB{0%,24.9%{transform:translateX(-25%)}25%,49.9%{transform:translateX(-50%)}50%,74.9%{transform:translateX(-75%)}75%,100%{transform:translateX(0)}}
+@keyframes helFade{from{opacity:0}to{opacity:1}}
 .hel-card:hover .hel-img{transform:scale(1.1)}
 .hel-reveal{position:absolute;inset:8% 8% 18%;clip-path:ellipse(100% 0% at 50% 0);transition:clip-path var(--dur) var(--ease);background:radial-gradient(60% 60% at 50% 55%,rgba(210,255,0,.18),transparent 70%)}
 .hel-card:hover .hel-reveal{clip-path:ellipse(100% 120% at 50% 0%)}

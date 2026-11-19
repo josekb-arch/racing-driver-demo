@@ -33,7 +33,7 @@ const HELMETS = [["Lime Spots","2026"],["Pinstripe","2026"],["Contour","2026"],[
     const el = document.createElement("div"); el.className = "hel-card"; el.setAttribute("data-helmet-item", "");
     el.innerHTML = `<svg class="hel-frame" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M1 1H99V87H64L58 99H1Z"/></svg>
       <div class="hel-reveal" aria-hidden="true"></div>
-      <div class="hel-img"><div class="hel-spr"><img src="assets/img/ht${String(i+1).padStart(2,"0")}.webp?v=3" width="1024" height="256" loading="lazy" decoding="async" alt="${name} helmet, ${yr}"></div></div>
+      <div class="hel-img"><div class="hel-spr"><img src="assets/img/ht${String(i+1).padStart(2,"0")}.webp?v=3" width="1024" height="256" loading="lazy" decoding="async" alt="${name} helmet, ${yr}"><img class="hel-b" src="assets/img/ht${String(i+1).padStart(2,"0")}.webp?v=3" width="1024" height="256" loading="lazy" decoding="async" alt=""></div></div>
       <div class="hel-label"><span>${name}</span><b>${yr}</b></div>
       <a href="#helmets" aria-label="${name} helmet ${yr}"></a>`;
     cols[i % n].appendChild(el);
