@@ -18,7 +18,7 @@
 <div class="loader" aria-hidden="true"><div class="loader-mark"><span>RV</span><i></i></div></div>
 
 <header class="nav" data-theme="light">
-  <a class="nav-logo" href="#top" aria-label="Rowan Vale home"><span class="logo-a">ROWAN</span><span class="logo-b">VALE</span></a>
+  <a class="nav-logo" href="#top"><span class="logo-a">ROWAN</span> <span class="logo-b">VALE</span></a>
   <a class="nav-mark" href="#top" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 40 40"><path d="M8 6h10c6 0 9 3 9 8 0 4-2 6-5 7l6 13h-6l-5-12h-4v12H8zM13 10v8h5c2.5 0 4-1.4 4-4s-1.5-4-4-4z" fill="currentColor"/><path d="M27 6h5l-4 10h-4z" fill="currentColor"/></svg></a>
   <div class="nav-right">
     <a class="btn-store" href="#store" data-hover><span class="i" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M4 6V5a4 4 0 0 1 8 0v1h2l-1 9H3L2 6zm2 0h4V5a2 2 0 0 0-4 0z" fill="currentColor"/></svg></span><span class="t" data-text="STORE">STORE</span></a>
@@ -26,7 +26,7 @@
   </div>
 </header>
 
-<div class="menu" id="menu" hidden>
+<div class="menu" id="menu" role="dialog" aria-modal="true" aria-label="Menu" hidden>
   <nav aria-label="Main">
     <a href="#top">Home</a><a href="#on-track">On track</a><a href="#off-track">Off track</a><a href="#helmets">Helmets</a><a href="#store">Store</a>
   </nav>
@@ -100,7 +100,7 @@
     <img class="otot-img otot-l" src="assets/img/on_helmet.webp?v=1" width="700" height="933" loading="lazy" alt="Lime helmet with black squiggles in side profile">
     <img class="otot-img otot-r" src="assets/img/off_face.webp?v=1" width="700" height="933" loading="lazy" alt="Rowan Vale in side profile">
     <div class="otot-col otot-c1">
-      <span class="script s-on" aria-hidden="true">ON</span>
+      <svg class="script s-on" viewBox="0 0 160 110" aria-hidden="true" focusable="false"><text x="4" y="92">ON</text></svg>
       <h2 class="otot-h" data-high="left,dark-green-tint-1"><span class="serif">On</span><br>Track</h2>
       <p class="otot-p" data-high="left,dark-green-tint-1,200">Results, stats and photos from trackside.</p>
       <a class="btn-round" href="#helmets" aria-label="Go to on track"><svg viewBox="0 0 16 16"><path d="M5 11 11 5M6 5h5v5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></a>
@@ -149,7 +149,7 @@
 <section class="collabs" id="collabs" data-nav="light">
   <div class="col-head">
     <h2 class="col-title" data-high="right,dark-green-tint-1"><span class="mona">Partners</span><br><span class="serif">&amp;Campaigns</span></h2>
-    <span class="script s-collab" aria-hidden="true">Collabs</span>
+    <svg class="script s-collab" viewBox="0 0 620 220" aria-hidden="true" focusable="false"><text x="6" y="180">Collabs</text></svg>
     <p class="col-p" data-high="right,dark-green-tint-1,200">Rowan works with a range of partners who share his passion for performance, in every industry.</p>
   </div>
   <div class="marquee" data-mq data-speed="40" data-dir="right" data-dup="3" data-ss="10" aria-label="Fictional partner logos">

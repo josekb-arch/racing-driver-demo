@@ -47,7 +47,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .nav-logo{display:flex;flex-direction:column;line-height:.82;transform-origin:left top;transition:transform .5s var(--ease)}
 .logo-a{font-family:var(--serif);font-size:1.55rem;letter-spacing:-.02em}
 .logo-b{font-weight:800;font-stretch:112%;font-size:1.32rem;letter-spacing:-.03em}
-.nav-mark{position:absolute;left:50%;top:1.25rem;width:2rem;height:2rem;margin-left:-1rem;transition:transform .5s var(--ease)}
+.nav-mark{position:absolute;left:50%;top:.9rem;width:2.75rem;height:2.75rem;padding:.4rem;margin-left:-1.375rem;transition:transform .5s var(--ease)}
 .nav-mark svg{width:100%;height:100%}
 .nav-right{display:flex;gap:.5rem;transform-origin:right top;transition:transform .5s var(--ease)}
 .at-top .nav-logo,.at-top .nav-right{transform:scale(1.2)}
@@ -58,6 +58,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .btn-menu i:last-child{width:.6rem;margin-left:auto}
 .menu-open .btn-menu i:first-child{transform:translateY(3.25px) rotate(45deg)}
 .menu-open .btn-menu i:last-child{width:1rem;transform:translateY(-3.25px) rotate(-45deg)}
+.menu[hidden]{display:none}
 .menu{position:fixed;inset:0;z-index:90;background:var(--dg);color:var(--white);display:flex;flex-direction:column;justify-content:center;padding:6rem 1.5rem 2rem;clip-path:ellipse(0% 0% at 100% 0%)}
 .menu nav{display:flex;flex-direction:column;gap:.2rem}
 .menu nav a{font-weight:800;font-stretch:112%;text-transform:uppercase;font-size:clamp(2.6rem,7vw,5.25rem);line-height:1;letter-spacing:-.03em;min-height:44px}
@@ -144,8 +145,10 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .otot-p{margin:0;font-size:.85rem;max-width:15rem}
 .btn-round{width:2.75rem;height:2.75rem;background:var(--lime);border-radius:.4rem;display:grid;place-items:center}
 .btn-round svg{width:1rem}
-.script{font-family:var(--script);color:var(--lime);pointer-events:none;line-height:1;display:inline-block;clip-path:inset(0 100% 0 0)}
-.s-on{position:absolute;right:5%;top:-2.6rem;font-size:clamp(4rem,9vw,8rem);transform:rotate(-8deg);z-index:3;-webkit-text-stroke:1px var(--lime)}
+.script{pointer-events:none;display:block;overflow:visible;clip-path:inset(0 100% 0 0)}
+.script text{font-family:var(--script);fill:var(--lime);font-size:100px}
+.s-collab text{font-size:200px}
+.s-on{position:absolute;right:2%;top:-4.2rem;width:clamp(7rem,13vw,12rem);transform:rotate(-8deg);z-index:3}
 .otot-bottom{position:relative;height:90vh;overflow:hidden}
 .otot-bottom img{width:100%;height:120%;object-fit:cover;transform-origin:50% 0}
 
@@ -195,7 +198,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .col-title .mona{font-weight:800;font-stretch:93%}
 .col-title .serif{font-weight:400}
 .col-p{max-width:17rem;font-size:.85rem;margin:0}
-.s-collab{position:absolute;left:-2%;top:-30%;font-size:clamp(8rem,30vw,28rem);transform:rotate(-14deg);z-index:3;letter-spacing:-.04em}
+.s-collab{position:absolute;left:-1%;top:-35%;width:min(68vw,64rem);transform:rotate(-14deg);z-index:3}
 .marquee{position:relative;overflow:hidden}
 .mq-lane{display:flex;width:max-content;will-change:transform}
 .mq-coll{display:flex;align-items:center;gap:5rem;padding-right:5rem;flex:none}
@@ -234,7 +237,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .foot-mq{grid-column:1/-1;grid-row:4;margin:0 -2rem;padding:1rem 0;z-index:1}
 .foot-mq .logo{color:var(--white);height:1.8rem}
 .foot-legal{grid-column:1/-1;display:flex;justify-content:space-between;font-size:.6rem;color:var(--ow2);text-transform:uppercase;font-weight:700;position:relative;z-index:3}
-.foot-legal a{margin-left:1rem;display:inline-flex;min-height:44px;align-items:center}
+.foot-legal a{margin-left:.6rem;display:inline-flex;min-height:44px;min-width:44px;padding:0 .4rem;align-items:center;justify-content:center}
 
 /* MOBILE */
 @media (max-width:991px){
@@ -259,8 +262,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   .otot-img{position:relative;height:auto;width:100%;grid-row:2;left:auto;right:auto}
   .otot-col{position:relative;top:auto;left:auto;right:auto;grid-row:1}
   .otot-c1{align-items:flex-start;text-align:left}
-  .s-on{right:auto;left:0;top:-4.5rem}
-  .s-collab{top:-10%;font-size:34vw}
+  .s-on{right:auto;left:0;top:-5rem;width:6.5rem}
+  .s-collab{top:-6%;width:96vw}
   .collabs{padding-bottom:20vh}
   .otot-bottom{height:60vh}
   .hel-grid{grid-template-columns:repeat(2,1fr);gap:.8rem}

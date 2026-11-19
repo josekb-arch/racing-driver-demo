@@ -47,7 +47,7 @@ $$("[data-mq] .mq-coll").forEach(c => c.innerHTML = LOGOS.join(""));
 
 /* ---------- split text ---------- */
 function splitAll(){
-  $$("[data-split]").forEach(el => { el._split = SplitText.create(el, { type: "lines", linesClass: "line", aria: "auto" }); });
+  $$("[data-split]").forEach(el => { el._split = SplitText.create(el, { type: "lines", linesClass: "line", aria: "none" }); });
   // single-line [data-high] elements: wrap content as one line
   $$("[data-high]").forEach(el => { if (!el.querySelector(".line")) { const s = document.createElement("span"); s.className = "line"; while (el.firstChild) s.appendChild(el.firstChild); el.appendChild(s); } });
   // hover texts: chars + duplicate copy
