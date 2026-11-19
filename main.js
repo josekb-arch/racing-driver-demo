@@ -104,9 +104,10 @@ function heroReveal(){
   let W = 0, H = 0, dpr = Math.min(devicePixelRatio || 1, DESK ? 1.25 : 1.5), inView = true, gl = null, ctx = null, mask, m, helmet, ready = false;
   const mouse = { x: -9, y: -9 }, eased = { x: -9, y: -9 }, par = { x: 0, y: 0 }, parT = { x: 0, y: 0 };
   let op = [.5, .4];
-  let q = 1, slow = 0, last = 0;   // adaptive render scale: drops on slow (software) GPUs, stays 1 on real hardware
+  let q = 1, slow = 0, last = 0, fade = 48;   // adaptive render scale: drops on slow (software) GPUs, stays 1 on real hardware
   const size = () => { op = getComputedStyle(faceImg).objectPosition.split(" ").map(v => (parseFloat(v) || 50) / 100);
     const r = media.getBoundingClientRect(), k = gl ? Math.min(dpr, Math.sqrt(2.1e6 / (r.width * r.height))) * q : dpr; W = Math.round(r.width * k); H = Math.round(r.height * k);
+    fade = parseFloat(getComputedStyle(document.documentElement).fontSize) * 3;
     if (gl) gl.resize(W, H); else if (ctx) { cvs.width = mask.width = W; cvs.height = mask.height = H; } };
   // pointer in 0..1 of the hero media box
   if (FINE) media.parentElement.addEventListener("pointermove", e => { if (auto) return; const r = media.getBoundingClientRect();
@@ -160,7 +161,7 @@ function heroReveal(){
       const now = performance.now(), dt = now - last; last = now;
       if (dt > 28 && dt < 200) { if (++slow > 20 && q > .5) { q = Math.max(.5, q - .2); slow = 0; size(); } } else slow = Math.max(0, slow - 1);
       const r = media.getBoundingClientRect();
-      gl.render({ drops: drops.map(b => [b[0], b[1], b[2] * .42]), op, par: [par.x, par.y], scale: gsap.getProperty(faceImg, "scale") || 1, cssW: r.width, cssH: r.height, t, fade: parseFloat(getComputedStyle(document.documentElement).fontSize) * 3 });
+      gl.render({ drops: drops.map(b => [b[0], b[1], b[2] * .42]), op, par: [par.x, par.y], scale: gsap.getProperty(faceImg, "scale") || 1, cssW: r.width, cssH: r.height, t, fade });
       return;
     }
     m.globalCompositeOperation = "destination-out"; m.fillStyle = "rgba(0,0,0,.035)"; m.fillRect(0, 0, W, H);
