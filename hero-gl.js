@@ -21,18 +21,31 @@ window.RVHeroGL = function(canvas, imgs){
     float nz=n(v*asp*5.+t*.4);
     gl_FragColor=vec4(a,clamp(.5+gx*2.,0.,1.),clamp(.5-gy*2.,0.,1.),nz);}`;
   // main pass: 3-4 texture reads per pixel
-  const MAIN = `precision mediump float;varying vec2 v;uniform sampler2D face,helm,depth,trail;uniform vec2 res,op,par;uniform float ia,sc,fade;
+  const MAIN = `precision mediump float;varying vec2 v;uniform sampler2D face,helm,depth,trail;uniform vec2 res,op,par,cur,tpx2;uniform float ia,sc,fade,pres;
   vec2 cover(vec2 u){float ca=res.x/res.y;vec2 f=ca>ia?vec2(1.,ia/ca):vec2(ca/ia,1.);f/=sc;return (1.-f)*op+u*f;}
   void main(){vec2 u=vec2(v.x,1.-v.y);vec2 ui=cover(u);
     float d=texture2D(depth,ui).r;vec2 up=ui+par*(d-.35)*vec2(.018,.012);
     vec4 T=texture2D(trail,v);float mm=T.r+(T.a-.5)*.22;vec2 g=(T.gb-.5)*.5;
     float e=smoothstep(.40,.47,mm);float band=smoothstep(.30,.44,mm)*(1.-e);
     vec2 refr=g*.045*(band+.35*e);
-    vec3 c=texture2D(face,up-refr*.6).rgb;
-    if(e+band>.001){vec3 hc=texture2D(helm,up+refr).rgb;c=mix(c,hc,e);
-      float rim=smoothstep(.0,.6,band)*(1.-smoothstep(.6,1.,band));
-      c=mix(c,vec3(.80,.80,.73),rim*.55);c+=vec3(pow(max(0.,dot(normalize(vec3(g*6.,1.)),normalize(vec3(-.4,.6,1.)))),24.)*band*.35);}
-    vec2 q=(u-vec2(.5,.55))/vec2(1.2,.95);float al=1.-smoothstep(.6,1.,length(q));al*=clamp(u.y*res.y/fade,0.,1.);
+    // glass shell: the helmet silhouette (depth.g) sits in front of the face, so it gets more parallax;
+    // near the cursor it shows as a refracting glass outline with a moving highlight (stands in for the 3D visor)
+    vec2 us=ui+par*vec2(.03,.02);float S=texture2D(depth,us).g;
+    float near=pres*(1.-smoothstep(.10,.42,length((u-cur)*vec2(res.x/res.y,1.))));
+    vec2 sg=vec2(0.);float srim=0.;
+    if(near>.003&&S>.004&&S<.996){sg=vec2(texture2D(depth,us+vec2(tpx2.x,0)).g-texture2D(depth,us-vec2(tpx2.x,0)).g,texture2D(depth,us+vec2(0,tpx2.y)).g-texture2D(depth,us-vec2(0,tpx2.y)).g);
+      srim=smoothstep(.06,.5,length(sg));}
+    float sin_=smoothstep(.2,.8,S)*near;
+    // face and helmet carry a cut-out alpha, so the topo lines show around the head as in the original
+    vec4 F=texture2D(face,up-refr*.6+sg*.012*near);vec3 c=F.rgb;float A=F.a;
+    float gls=sin_*.35;c=mix(c,c*.94+vec3(.06),gls);A=max(A,gls*.5);
+    float rl=srim*near*.55;c=mix(c,vec3(.52,.54,.52),rl);A=max(A,rl);
+    float sb=dot(ui-vec2(.5,.25),normalize(vec2(1.,-.6)))-par.x*.035+par.y*.015;float spec=exp(-sb*sb*1400.)*sin_*.22;
+    c+=vec3(spec);A=max(A,spec);
+    if(e+band>.001){vec4 H=texture2D(helm,up+refr);c=mix(c,H.rgb,e*H.a);A=max(A,e*H.a);
+      float rim=smoothstep(.0,.6,band)*(1.-smoothstep(.6,1.,band))*.55;
+      c=mix(c,vec3(.80,.80,.73),rim);A=max(A,rim);float sp=pow(max(0.,dot(normalize(vec3(g*6.,1.)),normalize(vec3(-.4,.6,1.)))),24.)*band*.35;c+=vec3(sp);A=max(A,sp);}
+    vec2 q=(u-vec2(.5,.55))/vec2(1.2,.95);float al=1.-smoothstep(.6,1.,length(q));al*=clamp(u.y*res.y/fade,0.,1.);al*=A;
     gl_FragColor=vec4(c*al,al);}`;
   const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
   const prog = fs => { const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p);
@@ -65,6 +78,7 @@ window.RVHeroGL = function(canvas, imgs){
       [[TF, "face"], [TH, "helm"], [TD, "depth"], [dst.t, "trail"]].forEach(([t, nm], i) => { gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, t); gl.uniform1i(PM.U[nm], i); });
       gl.uniform2f(PM.U.res, s.cssW, s.cssH); gl.uniform2f(PM.U.op, s.op[0], s.op[1]); gl.uniform2f(PM.U.par, s.par[0], s.par[1]);
       gl.uniform1f(PM.U.ia, 16 / 9); gl.uniform1f(PM.U.sc, s.scale); gl.uniform1f(PM.U.fade, s.fade || 48);
+      gl.uniform2f(PM.U.cur, s.cur ? s.cur[0] : -9, s.cur ? s.cur[1] : -9); gl.uniform1f(PM.U.pres, s.pres || 0); gl.uniform2f(PM.U.tpx2, 2 / 512, 2 / 288);
       quad(PM); cur = 1 - cur;
     }
   };
