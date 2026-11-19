@@ -105,7 +105,7 @@ function heroReveal(){
   let auto = true; const sweep = { p: 0 };
   heroReveal.start = () => {
     gsap.to(sweep, { p: 1, duration: 2.4, ease: "sine.inOut", onUpdate(){ const p = sweep.p;
-      mouse.x = W * (.38 + .24 * p + .04 * Math.sin(p * 9)); mouse.y = H * (.30 + .16 * Math.sin(p * Math.PI) + .06 * Math.cos(p * 7)); },
+      mouse.x = W * (.40 + .2 * Math.sin(p * Math.PI * 1.5) * (1 - p * .6) + .1 * p); mouse.y = H * (.22 + .14 * p + .05 * Math.sin(p * 8)); },
       onComplete(){ auto = !FINE; if (!FINE) gsap.to(sweep, { p: 0, duration: 3, ease: "sine.inOut", repeat: -1, yoyo: true, delay: 1.5, onUpdate(){ const p = sweep.p; mouse.x = W * (.42 + .16 * p); mouse.y = H * (.34 + .1 * Math.sin(p * 6)); } }); } });
   };
   ScrollTrigger.create({ trigger: ".hero", start: "top top", end: "bottom top", onToggle: s => inView = s.isActive });
@@ -115,9 +115,9 @@ function heroReveal(){
     if (!ready || !inView || !heroActive) return;
     t += .016;
     eased.x += (mouse.x - eased.x) * .18; eased.y += (mouse.y - eased.y) * .18;
-    m.globalCompositeOperation = "destination-out"; m.fillStyle = "rgba(0,0,0,.055)"; m.fillRect(0, 0, W, H);
+    m.globalCompositeOperation = "destination-out"; m.fillStyle = "rgba(0,0,0,.035)"; m.fillRect(0, 0, W, H);
     m.globalCompositeOperation = "source-over";
-    const R = Math.max(W, H * 1.3) * .055;
+    const R = Math.min(W, H * 1.6) * .085;
     for (let k = 0; k < 5; k++) {
       const a = t * (1.3 + k * .4) + k * 1.7, off = R * (.35 + .25 * Math.sin(t * 2 + k));
       const x = eased.x + Math.cos(a) * off, y = eased.y + Math.sin(a * 1.2) * off, r = R * (.55 + .35 * Math.sin(t * 1.7 + k * 2));
