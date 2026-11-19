@@ -331,7 +331,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .page-h{margin:1rem 0 1.5rem;font-weight:800;font-stretch:93%;text-transform:uppercase;font-size:clamp(2.8rem,8vw,6.5rem);line-height:.86;letter-spacing:-.03em}
 .page-h .serif{color:var(--lime);font-weight:400}
 .page-p{max-width:38rem;color:var(--ow2);line-height:1.6}
-.page-p a{color:var(--lime);text-decoration:underline}
+.page-p a{color:var(--lime);text-decoration:underline;display:inline-flex;align-items:center;min-height:44px}
 .page h2{margin:3rem 0 .6rem;font-size:1.3rem;text-transform:uppercase}
 .cal{list-style:none;margin:3rem 0 0;padding:0;border-top:1px solid #4a4d42}
 .cal li{display:grid;grid-template-columns:3rem 1fr auto;gap:1rem;align-items:baseline;padding:1.1rem 0;border-bottom:1px solid #4a4d42}
