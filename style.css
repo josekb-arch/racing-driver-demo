@@ -24,7 +24,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .c-lime{color:var(--lime)}
 .eyebrow{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin:0}
 .topo{position:absolute;inset:0;pointer-events:none;-webkit-mask:url(assets/topo.svg?v=3) center/cover no-repeat;mask:url(assets/topo.svg?v=3) center/cover no-repeat}
-.topo-hero{background:var(--ow2);opacity:.85;top:calc(var(--zt)*-1);-webkit-mask-image:url(assets/topo-hero.svg?v=3);mask-image:url(assets/topo-hero.svg?v=3)}
+.topo-hero{background:var(--ow2);opacity:.65;top:calc(var(--zt)*-1);-webkit-mask-image:url(assets/topo-hero.svg?v=3);mask-image:url(assets/topo-hero.svg?v=3)}
 .topo-dark{background:#363b25}
 .topo-light{background:var(--topo);opacity:.7}
 .topo-foot{background:#3a3f2a}
