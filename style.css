@@ -63,6 +63,13 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .menu nav a{font-weight:800;font-stretch:112%;text-transform:uppercase;font-size:clamp(2.6rem,7vw,5.25rem);line-height:1;letter-spacing:-.03em;min-height:44px}
 .menu nav a:hover{color:var(--lime)}
 .menu-foot{margin-top:auto;font-size:.75rem;color:var(--ow2)}
+.menu-pics{position:absolute;right:6vw;top:0;bottom:0;margin:auto 0;width:min(24vw,22rem);height:min(30vw,27.5rem);transform:rotate(3deg);pointer-events:none}
+.menu-pics img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:1rem;opacity:0;transform:scale(.94) rotate(-4deg);transition:opacity .45s var(--ease),transform .6s var(--ease)}
+.menu-pics img.on{opacity:1;transform:none}
+@media (max-width:991px){.menu-pics{position:relative;right:auto;top:auto;bottom:auto;transform:none;display:flex;gap:.6rem;width:auto;height:auto;margin:1.6rem 0 0}
+  .menu-pics img{position:static;width:calc((100% - 1.2rem)/3);height:auto;aspect-ratio:4/5;opacity:.9;transform:none;border-radius:.6rem}
+  .menu-pics img:nth-child(n+4){display:none}.menu-pics img:first-child{display:none}.menu-pics img:nth-child(2),.menu-pics img:nth-child(3),.menu-pics img:nth-child(4){display:block}
+  .menu-pics img.on{opacity:1}}
 .menu-open .nav{color:var(--white)}
 
 /* data-hover text */

@@ -385,9 +385,13 @@ function menu(){
   const set = o => { open = o; btn.setAttribute("aria-expanded", o); btn.setAttribute("aria-label", o ? "Close menu" : "Open menu");
     if (o) { m.hidden = false; html.classList.add("menu-open"); lenis && lenis.stop();
       gsap.fromTo(m, { clipPath: "ellipse(0% 0% at 100% 0%)" }, { clipPath: "ellipse(150% 150% at 100% 0%)", duration: REDUCED ? 0 : .8, ease: "expo.inOut" });
-      gsap.fromTo($$("nav a", m), { yPercent: 100, autoAlpha: 0 }, { yPercent: 0, autoAlpha: 1, stagger: .05, duration: REDUCED ? 0 : .6, ease: "power3.out", delay: REDUCED ? 0 : .3 }); }
+      gsap.fromTo($$("nav a", m), { yPercent: 100, autoAlpha: 0 }, { yPercent: 0, autoAlpha: 1, stagger: .05, duration: REDUCED ? 0 : .6, ease: "power3.out", delay: REDUCED ? 0 : .3 });
+      gsap.fromTo(".menu-pics", { autoAlpha: 0, y: 40 }, { autoAlpha: 1, y: 0, duration: REDUCED ? 0 : .7, ease: "power3.out", delay: REDUCED ? 0 : .45 }); }
     else { html.classList.remove("menu-open"); lenis && lenis.start();
       gsap.to(m, { clipPath: "ellipse(0% 0% at 100% 0%)", duration: REDUCED ? 0 : .6, ease: "expo.inOut", onComplete: () => { if (!open) m.hidden = true; } }); } };
+  // thumbnails: the hovered / focused link brings its picture to the front (desktop)
+  const pics = $$(".menu-pics img", m), pick = i => pics.forEach((p, k) => p.classList.toggle("on", k === i));
+  $$("nav a", m).forEach(a => { const i = +a.dataset.pic; a.addEventListener("pointerenter", () => pick(i)); a.addEventListener("focus", () => pick(i)); });
   btn.addEventListener("click", () => set(!open));
   $$("a", m).forEach(a => a.addEventListener("click", () => set(false)));
   addEventListener("keydown", e => { if (e.key === "Escape" && open) { set(false); btn.focus(); } });
