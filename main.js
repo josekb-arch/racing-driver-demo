@@ -25,7 +25,7 @@ let wasDesk = DESK, rT;
 addEventListener("resize", () => { clearTimeout(rT); rT = setTimeout(() => { if ((innerWidth > 991) !== wasDesk) location.reload(); }, 150); });
 
 /* ---------- content builders ---------- */
-const HELMETS = [["Season","2025"],["Discoball","2025"],["Dark Glitter","2025"],["Season","2024"],["Porcelain","2024"],["Holo","2024"],["Marble","2023"],["Basketball","2023"],["Chrome","2023"],["Rainbow","2022"],["Graffiti","2021"],["Checker","2019"]];
+const HELMETS = [["Lime Spots","2026"],["Pinstripe","2026"],["Contour","2026"],["Cloud Nine","2025"],["Nebula","2025"],["Checker Pop","2025"],["Gold Rush","2025"],["Coral Wave","2025"],["Tide","2024"],["Field","2024"],["Prism","2024"],["Doodle","2024"],["Stripes","2024"],["Night City","2024"],["Marble","2023"],["Halftone","2023"],["Hot Rod","2023"],["Sunset Strip","2023"],["Splash","2023"],["Tartan","2023"],["Bolt","2022"],["Spectrum","2022"],["Glow","2022"],["Wild Lime","2022"],["Copper","2021"],["Pastel","2021"],["Heritage","2021"],["Synth","2021"],["Ukiyo","2020"],["Smoke","2020"],["Dots","2019"],["Hypno","2018"]];
 (function buildHelmets(){
   const grid = $("[data-helmet-grid]"), n = DESK ? 4 : 2, cols = [];
   for (let c = 0; c < n; c++) { const d = document.createElement("div"); d.className = "hel-col"; grid.appendChild(d); cols.push(d); }
@@ -33,11 +33,16 @@ const HELMETS = [["Season","2025"],["Discoball","2025"],["Dark Glitter","2025"],
     const el = document.createElement("div"); el.className = "hel-card"; el.setAttribute("data-helmet-item", "");
     el.innerHTML = `<svg class="hel-frame" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M1 1H99V87H64L58 99H1Z"/></svg>
       <div class="hel-reveal" aria-hidden="true"></div>
-      <div class="hel-img"><img src="assets/img/h${String(i+1).padStart(2,"0")}.webp?v=1d" width="384" height="384" loading="lazy" alt="${name} helmet, ${yr}"></div>
+      <div class="hel-img"><div class="hel-spr"><img src="assets/img/ht${String(i+1).padStart(2,"0")}.webp?v=2" width="1024" height="256" loading="lazy" decoding="async" alt="${name} helmet, ${yr}"></div></div>
       <div class="hel-label"><span>${name}</span><b>${yr}</b></div>
       <a href="#helmets" aria-label="${name} helmet ${yr}"></a>`;
     cols[i % n].appendChild(el);
   });
+  // touch: spin the card that sits in the middle of the screen
+  if (!matchMedia("(hover:hover) and (pointer:fine)").matches && "IntersectionObserver" in window) {
+    const io = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle("is-spin", e.isIntersecting)), { rootMargin: "-40% 0px -40% 0px" });
+    $$(".hel-card", grid).forEach(c => io.observe(c));
+  }
 })();
 const LOGOS = [
   `<span class="logo lg1">NORTHWIND</span>`, `<span class="logo lg2">Kestrel</span>`, `<span class="logo lg3">VOLT<i>A</i></span>`,
@@ -89,25 +94,44 @@ function textHover(){
   });
 }
 
-/* ---------- 3.4 hero helmet reveal (2D canvas trail) ---------- */
+/* ---------- 3.4 hero helmet reveal ----------
+   WebGL liquid reveal + depth parallax (hero-gl.js, loaded lazily after the loader). If WebGL or the script
+   is unavailable, the same cursor trail is drawn with a 2D canvas. */
 let heroActive = true;
 function heroReveal(){
-  const media = $(".hero-media"), cvs = $(".hero-canvas"), ctx = cvs.getContext("2d");
-  const mask = document.createElement("canvas"), m = mask.getContext("2d");
-  const helmet = new Image(); helmet.decoding = "async"; helmet.src = "assets/img/hero_helmet.webp?v=1d";
-  let W = 0, H = 0, dpr = Math.min(devicePixelRatio || 1, 1.5), ready = false, inView = true;
-  const mouse = { x: -9999, y: -9999 }, eased = { x: -9999, y: -9999 };
+  const media = $(".hero-zoom"), cvs = $(".hero-canvas"), faceImg = $(".hero-img");
+  const load = src => new Promise((res, rej) => { const i = new Image(); i.decoding = "async"; i.onload = () => res(i); i.onerror = rej; i.src = src; });
+  let W = 0, H = 0, dpr = Math.min(devicePixelRatio || 1, DESK ? 1.25 : 1.5), inView = true, gl = null, ctx = null, mask, m, helmet, ready = false;
+  const mouse = { x: -9, y: -9 }, eased = { x: -9, y: -9 }, par = { x: 0, y: 0 }, parT = { x: 0, y: 0 };
   let op = [.5, .4];
-  const size = () => { op = getComputedStyle($(".hero-img")).objectPosition.split(" ").map(v => (parseFloat(v) || 50) / 100); const r = media.getBoundingClientRect(); W = cvs.width = mask.width = Math.round(r.width * dpr); H = cvs.height = mask.height = Math.round(r.height * dpr); };
-  size(); addEventListener("resize", size);
-  helmet.onload = () => { ready = true; };
-  if (FINE) media.parentElement.addEventListener("pointermove", e => { if (auto) return; const r = media.getBoundingClientRect(); mouse.x = (e.clientX - r.left) * dpr; mouse.y = (e.clientY - r.top) * dpr; });
-  // intro sweep across the face (what the video shows in the first second), then hand over to the cursor
+  const size = () => { op = getComputedStyle(faceImg).objectPosition.split(" ").map(v => (parseFloat(v) || 50) / 100);
+    const r = media.getBoundingClientRect(); W = Math.round(r.width * dpr); H = Math.round(r.height * dpr);
+    if (gl) gl.resize(W, H); else if (ctx) { cvs.width = mask.width = W; cvs.height = mask.height = H; } };
+  // pointer in 0..1 of the hero media box
+  if (FINE) media.parentElement.addEventListener("pointermove", e => { if (auto) return; const r = media.getBoundingClientRect();
+    mouse.x = (e.clientX - r.left) / r.width; mouse.y = (e.clientY - r.top) / r.height;
+    parT.x = (mouse.x - .5) * 2; parT.y = (mouse.y - .5) * 2; });
   let auto = true; const sweep = { p: 0 };
-  heroReveal.start = () => {
+  const startSweep = () => {
     gsap.to(sweep, { p: 1, duration: 2.4, ease: "sine.inOut", onUpdate(){ const p = sweep.p;
-      mouse.x = W * (.40 + .2 * Math.sin(p * Math.PI * 1.5) * (1 - p * .6) + .1 * p); mouse.y = H * (.22 + .14 * p + .05 * Math.sin(p * 8)); },
-      onComplete(){ auto = !FINE; if (!FINE) gsap.to(sweep, { p: 0, duration: 3, ease: "sine.inOut", repeat: -1, yoyo: true, delay: 1.5, onUpdate(){ const p = sweep.p; mouse.x = W * (.42 + .16 * p); mouse.y = H * (.34 + .1 * Math.sin(p * 6)); } }); } });
+      mouse.x = .40 + .2 * Math.sin(p * Math.PI * 1.5) * (1 - p * .6) + .1 * p; mouse.y = .22 + .14 * p + .05 * Math.sin(p * 8); parT.x = (mouse.x - .5) * 1.5; parT.y = (mouse.y - .5); },
+      onComplete(){ auto = !FINE; if (!FINE) gsap.to(sweep, { p: 0, duration: 3, ease: "sine.inOut", repeat: -1, yoyo: true, delay: 1.5, onUpdate(){ const p = sweep.p; mouse.x = .42 + .16 * p; mouse.y = .34 + .1 * Math.sin(p * 6); parT.x = (p - .5) * 1.2; } }); } });
+  };
+  const use2D = async () => {
+    ctx = cvs.getContext("2d"); mask = document.createElement("canvas"); m = mask.getContext("2d"); size();
+    helmet = await load("assets/img/hero_helmet.webp?v=2"); ready = true; cvs.dataset.mode = "2d";
+  };
+  const useGL = async () => {
+    await new Promise((res, rej) => { const sc = document.createElement("script"); sc.src = "hero-gl.js?v=2"; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc); });
+    const [helm, depth] = await Promise.all([load("assets/img/hero_helmet.webp?v=2"), load("assets/img/hero_depth.webp?v=2")]);
+    await (faceImg.decode ? faceImg.decode().catch(() => {}) : 0);
+    gl = window.RVHeroGL(cvs, { face: faceImg, helmet: helm, depth }); size(); ready = true; cvs.dataset.mode = "webgl";
+  };
+  addEventListener("resize", () => size());
+  heroReveal.start = async () => {
+    const canGL = (() => { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl")); } catch (e) { return false; } })();
+    try { if (!canGL) throw 0; await useGL(); } catch (e) { gl = null; await use2D(); }
+    startSweep();
   };
   ScrollTrigger.create({ trigger: ".hero", start: "top top", end: "bottom top", onToggle: s => inView = s.isActive });
   const cover = () => { const ir = helmet.width / helmet.height, cr = W / H; let w, h; if (cr > ir) { w = W; h = W / ir; } else { h = H; w = H * ir; } return [(W - w) * op[0], (H - h) * op[1], w, h]; };
@@ -116,15 +140,23 @@ function heroReveal(){
     if (!ready || !inView || !heroActive) return;
     t += .016;
     eased.x += (mouse.x - eased.x) * .18; eased.y += (mouse.y - eased.y) * .18;
-    m.globalCompositeOperation = "destination-out"; m.fillStyle = "rgba(0,0,0,.035)"; m.fillRect(0, 0, W, H);
-    m.globalCompositeOperation = "source-over";
-    const R = Math.min(W, H * 1.6) * .085;
+    par.x += (parT.x - par.x) * .05; par.y += (parT.y - par.y) * .05;
+    const asp = W / H, R = Math.min(asp, 1.6) * .085;   // radius in units of height
+    const blobs = [];
     for (let k = 0; k < 5; k++) {
       const a = t * (1.3 + k * .4) + k * 1.7, off = R * (.35 + .25 * Math.sin(t * 2 + k));
-      const x = eased.x + Math.cos(a) * off, y = eased.y + Math.sin(a * 1.2) * off, r = R * (.55 + .35 * Math.sin(t * 1.7 + k * 2));
-      const g = m.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, "rgba(0,0,0,.9)"); g.addColorStop(.6, "rgba(0,0,0,.7)"); g.addColorStop(1, "rgba(0,0,0,0)");
-      m.fillStyle = g; m.beginPath(); m.arc(x, y, r, 0, 6.2832); m.fill();
+      blobs.push([eased.x + Math.cos(a) * off / asp, eased.y + Math.sin(a * 1.2) * off, R * (.55 + .35 * Math.sin(t * 1.7 + k * 2))]);
     }
+    if (gl) {
+      const r = media.getBoundingClientRect();
+      gl.render({ blobs: blobs.map(b => [b[0], b[1], b[2] * .42]), op, par: [par.x, par.y], scale: gsap.getProperty(faceImg, "scale") || 1, cssW: r.width, cssH: r.height, t });
+      return;
+    }
+    m.globalCompositeOperation = "destination-out"; m.fillStyle = "rgba(0,0,0,.035)"; m.fillRect(0, 0, W, H);
+    m.globalCompositeOperation = "source-over";
+    blobs.forEach(([bx, by, br]) => { const x = bx * W, y = by * H, rr = br * H;
+      const g = m.createRadialGradient(x, y, 0, x, y, rr); g.addColorStop(0, "rgba(0,0,0,.9)"); g.addColorStop(.6, "rgba(0,0,0,.7)"); g.addColorStop(1, "rgba(0,0,0,0)");
+      m.fillStyle = g; m.beginPath(); m.arc(x, y, rr, 0, 6.2832); m.fill(); });
     ctx.clearRect(0, 0, W, H); ctx.globalCompositeOperation = "source-over"; ctx.drawImage(mask, 0, 0);
     ctx.globalCompositeOperation = "source-in"; const c = cover(); ctx.drawImage(helmet, c[0], c[1], c[2], c[3]);
   });
@@ -141,6 +173,7 @@ function heroToCard(){
   tl.fromTo(media, { width: () => innerWidth, height: () => innerHeight }, { width: () => target.offsetWidth, height: () => target.offsetHeight, ease: "power1.inOut" }, 0)
     .fromTo(img, { scale: 1 }, { scale: 1.15, ease: "power1.inOut" }, 0)
     .fromTo(".hero-tint", { opacity: 0 }, { opacity: 1, ease: "power1.inOut" }, 0)
+    .fromTo(".hero-zoom", { top: () => getComputedStyle($(".hero")).getPropertyValue("--zt").trim() || 0 }, { top: 0, ease: "power1.inOut", duration: .5 }, 0)
     .fromTo(".hero-stick", { backgroundColor: "#f8f8f3" }, { backgroundColor: "#282c20", ease: "power1.inOut" }, 0)
     .to(".topo-hero", { opacity: 0, ease: "none", duration: .5 }, 0)
     .to(".next-race", { autoAlpha: 0, ease: "none", duration: .3 }, 0)
@@ -156,9 +189,13 @@ function velocityMarquee(row, dir, base){
   gsap.ticker.add((tt, dt) => { if (!on) return; const w = inner.scrollWidth / 2;
     x += dir * (base * dt / 1000 + vel() * .6); if (x <= -w) x += w; if (x >= 0) x -= w; gsap.set(inner, { x }); });
 }
-function drawSig(path, opts){
-  const L = path.getTotalLength(); gsap.set(path, { strokeDasharray: L, strokeDashoffset: L });
-  return gsap.to(path, { strokeDashoffset: 0, ...opts });
+/* handwriting: every stroke of the word draws itself in writing order (stroke-dashoffset) */
+function drawPaths(svg, opts, speed = 1){
+  const ps = $$("path", svg), L = ps.map(p => p.getTotalLength()), tot = L.reduce((a, b) => a + b, 0);
+  ps.forEach((p, i) => gsap.set(p, { strokeDasharray: L[i] + 1, strokeDashoffset: L[i] + 1 }));
+  const tl = gsap.timeline(opts);
+  ps.forEach((p, i) => tl.to(p, { strokeDashoffset: 0, duration: L[i] / tot * speed, ease: "none" }));
+  return tl;
 }
 
 /* ---------- 3.7 horizontal gallery ---------- */
@@ -207,7 +244,7 @@ function otot(){
   void st;
 }
 function scripts(){
-  $$(".script").forEach(s => gsap.to(s, { clipPath: "inset(0 0% 0 0)", duration: 1.1, ease: "power2.inOut", scrollTrigger: { trigger: s.parentElement, start: "top center", once: true } }));
+  $$(".s-on,.s-off,.s-collab").forEach(w => drawPaths(w, { scrollTrigger: { trigger: w.parentElement, start: "top 70%", once: true } }, w.matches(".s-collab") ? 1.6 : 1.1));
 }
 
 /* ---------- 3.9 helmet grid ---------- */
@@ -314,7 +351,6 @@ function anchors(){
 /* ---------- reduced motion: final states ---------- */
 function reducedSetup(){
   $(".hero-canvas").style.display = "none";
-  $$(".signature path").forEach(p => { p.style.strokeDasharray = "none"; });
   gsap.set(".hero-media", { width: "100%", height: "100%" });
   $(".hero .signature").style.display = "none";
   const k = innerWidth <= 479 ? .3 : innerWidth <= 991 ? .5 : 1;
@@ -328,8 +364,8 @@ async function init(){
   if (REDUCED) { reducedSetup(); $(".loader").remove(); document.body.classList.remove("is-loading"); navTheme(); return; }
   socialsFan(); heroToCard();
   velocityMarquee($(".mq-a"), -1, 40); velocityMarquee($(".mq-b"), 1, 40);
-  drawSig($(".hero .signature path"), { ease: "none", scrollTrigger: { trigger: ".hero-sig-track", start: "top center", end: "bottom 80%", scrub: true } });
-  drawSig($(".sig-foot path"), { duration: 1.4, ease: "power2.inOut", scrollTrigger: { trigger: ".foot-card", start: "top 80%", once: true } });
+  drawPaths($(".hero .signature"), { scrollTrigger: { trigger: ".hero-sig-track", start: "top center", end: "bottom 80%", scrub: true } });
+  drawPaths($(".sig-foot"), { scrollTrigger: { trigger: ".foot-card", start: "top 80%", once: true } }, 1.8);
   if (DESK) horizontal(); else $$("[data-img-hl]", $(".horiz")).forEach(w => imgHL(w, { trigger: w, start: "top 85%" }));
   otot(); scripts();
   if (DESK) helmetGrid();
