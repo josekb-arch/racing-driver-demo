@@ -53,13 +53,13 @@ window.RVHeroGL = function(canvas, imgs){
   const quad = P => { const l = gl.getAttribLocation(P.p, "p"); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, 2, gl.FLOAT, false, 0, 0); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); };
   const api = {
     resize(w, h){ canvas.width = w; canvas.height = h; tw = Math.max(64, w >> 2); th = Math.max(64, h >> 2); mkFB(); },
-    // s: {blobs:[[x,y,r]...] in 0..1 (x right, y down), op:[x,y], par:[x,y], scale, cssW, cssH, t}
+    // s: {drops:[[x,y,r]...] in 0..1 (x right, y down), op:[x,y], par:[x,y], scale, cssW, cssH, t}
     render(s){
       const src = fb[cur], dst = fb[1 - cur];
       gl.bindFramebuffer(gl.FRAMEBUFFER, dst.f); gl.viewport(0, 0, tw, th); gl.useProgram(PT.p);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, src.t); gl.uniform1i(PT.U.prev, 0);
       gl.uniform2f(PT.U.res, s.cssW, s.cssH); gl.uniform2f(PT.U.tpx, 1.5 / tw, 1.5 / th); gl.uniform1f(PT.U.dec, .968); gl.uniform1f(PT.U.t, s.t);
-      const mm = [], rr = []; s.blobs.forEach(b => { mm.push(b[0], 1 - b[1]); rr.push(b[2]); });
+      const mm = [], rr = []; s.drops.forEach(b => { mm.push(b[0], 1 - b[1]); rr.push(b[2]); });
       gl.uniform2fv(PT.U.m, mm); gl.uniform1fv(PT.U.r, rr); quad(PT);
       gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, canvas.width, canvas.height); gl.useProgram(PM.p);
       [[TF, "face"], [TH, "helm"], [TD, "depth"], [dst.t, "trail"]].forEach(([t, nm], i) => { gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, t); gl.uniform1i(PM.U[nm], i); });

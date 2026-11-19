@@ -151,21 +151,21 @@ function heroReveal(){
     eased.x += (mouse.x - eased.x) * .18; eased.y += (mouse.y - eased.y) * .18;
     par.x += (parT.x - par.x) * .05; par.y += (parT.y - par.y) * .05;
     const asp = W / H, R = Math.min(asp, 1.6) * .085;   // radius in units of height
-    const blobs = [];
+    const drops = [];
     for (let k = 0; k < 5; k++) {
       const a = t * (1.3 + k * .4) + k * 1.7, off = R * (.35 + .25 * Math.sin(t * 2 + k));
-      blobs.push([eased.x + Math.cos(a) * off / asp, eased.y + Math.sin(a * 1.2) * off, R * (.55 + .35 * Math.sin(t * 1.7 + k * 2))]);
+      drops.push([eased.x + Math.cos(a) * off / asp, eased.y + Math.sin(a * 1.2) * off, R * (.55 + .35 * Math.sin(t * 1.7 + k * 2))]);
     }
     if (gl) {
       const now = performance.now(), dt = now - last; last = now;
       if (dt > 28 && dt < 200) { if (++slow > 20 && q > .5) { q = Math.max(.5, q - .2); slow = 0; size(); } } else slow = Math.max(0, slow - 1);
       const r = media.getBoundingClientRect();
-      gl.render({ blobs: blobs.map(b => [b[0], b[1], b[2] * .42]), op, par: [par.x, par.y], scale: gsap.getProperty(faceImg, "scale") || 1, cssW: r.width, cssH: r.height, t, fade: parseFloat(getComputedStyle(document.documentElement).fontSize) * 3 });
+      gl.render({ drops: drops.map(b => [b[0], b[1], b[2] * .42]), op, par: [par.x, par.y], scale: gsap.getProperty(faceImg, "scale") || 1, cssW: r.width, cssH: r.height, t, fade: parseFloat(getComputedStyle(document.documentElement).fontSize) * 3 });
       return;
     }
     m.globalCompositeOperation = "destination-out"; m.fillStyle = "rgba(0,0,0,.035)"; m.fillRect(0, 0, W, H);
     m.globalCompositeOperation = "source-over";
-    blobs.forEach(([bx, by, br]) => { const x = bx * W, y = by * H, rr = br * H;
+    drops.forEach(([bx, by, br]) => { const x = bx * W, y = by * H, rr = br * H;
       const g = m.createRadialGradient(x, y, 0, x, y, rr); g.addColorStop(0, "rgba(0,0,0,.9)"); g.addColorStop(.6, "rgba(0,0,0,.7)"); g.addColorStop(1, "rgba(0,0,0,0)");
       m.fillStyle = g; m.beginPath(); m.arc(x, y, rr, 0, 6.2832); m.fill(); });
     ctx.clearRect(0, 0, W, H); ctx.globalCompositeOperation = "source-over"; ctx.drawImage(mask, 0, 0);
