@@ -4,7 +4,7 @@
    and depth parallax from a generated depth map so the head moves in 3D with the pointer. */
 (function(){
 window.RVHeroGL = function(canvas, imgs){
-  const gl = canvas.getContext("webgl", { antialias: false, alpha: true, premultipliedAlpha: true, powerPreference: "low-power" });
+  const gl = canvas.getContext("webgl", { antialias: false, alpha: true, premultipliedAlpha: true, preserveDrawingBuffer: false, powerPreference: "low-power" });
   if (!gl) throw new Error("no webgl");
   const VS = "attribute vec2 p;varying vec2 v;void main(){v=p*.5+.5;gl_Position=vec4(p,0.,1.);}";
   // trail pass (quarter res): r = liquid mask, g/b = its gradient (for refraction), a = edge noise

@@ -99,7 +99,7 @@ function textHover(){
    is unavailable, the same cursor trail is drawn with a 2D canvas. */
 let heroActive = true;
 function heroReveal(){
-  const media = $(".hero-zoom"), cvs = $(".hero-canvas"), faceImg = $(".hero-img");
+  const media = $(".hero-zoom"), faceImg = $(".hero-img"); let cvs = $(".hero-canvas");
   const load = src => new Promise((res, rej) => { const i = new Image(); i.decoding = "async"; i.onload = () => res(i); i.onerror = rej; i.src = src; });
   let W = 0, H = 0, dpr = Math.min(devicePixelRatio || 1, DESK ? 1.25 : 1.5), inView = true, gl = null, ctx = null, mask, m, helmet, ready = false;
   const mouse = { x: -9, y: -9 }, eased = { x: -9, y: -9 }, par = { x: 0, y: 0 }, parT = { x: 0, y: 0 };
@@ -129,9 +129,17 @@ function heroReveal(){
     gl = window.RVHeroGL(cvs, { face: faceImg, helmet: helm, depth }); size(); ready = true; cvs.dataset.mode = "webgl";
   };
   addEventListener("resize", () => size());
+  const canGL = () => { if (/[?&]gl=0/.test(location.search)) return false; try { return !!document.createElement("canvas").getContext("webgl"); } catch (e) { return false; } };
   heroReveal.start = async () => {
-    const canGL = (() => { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl")); } catch (e) { return false; } })();
-    try { if (!canGL || /[?&]gl=0/.test(location.search)) throw 0; await useGL(); } catch (e) { gl = null; await use2D(); }
+    if (FINE) { try { if (!canGL()) throw 0; await useGL(); } catch (e) { gl = null; await use2D(); } }
+    else {
+      // touch devices: start with the light 2D trail; upgrade to WebGL on the first touch (keeps the first load cheap)
+      await use2D();
+      if (canGL()) { const up = async () => { ["touchstart", "pointerdown", "keydown"].forEach(ev => removeEventListener(ev, up));
+          const fresh = cvs.cloneNode(); fresh.removeAttribute("data-mode"); const oldC = cvs;
+          try { cvs = fresh; ready = false; await useGL(); oldC.replaceWith(fresh); ctx = null; } catch (e) { cvs = oldC; gl = null; ready = true; } };
+        ["touchstart", "pointerdown", "keydown"].forEach(ev => addEventListener(ev, up, { passive: true })); }
+    }
     startSweep();
   };
   ScrollTrigger.create({ trigger: ".hero", start: "top top", end: "bottom top", onToggle: s => inView = s.isActive });
@@ -167,6 +175,7 @@ function heroReveal(){
   ScrollTrigger.create({ trigger: ".hero", start: () => `top+=${innerHeight / 2.25} top`,
     onEnter: () => { heroActive = false; gsap.to(cvs, { autoAlpha: 0, duration: .25, ease: "power1.inOut" }); },
     onLeaveBack: () => { heroActive = true; gsap.to(cvs, { autoAlpha: 1, duration: .25, ease: "power1.inOut" }); } });
+  heroReveal.canvas = () => cvs;
 }
 
 /* ---------- 3.5 hero → message card ---------- */
