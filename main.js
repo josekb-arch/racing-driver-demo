@@ -33,7 +33,7 @@ const HELMETS = [["Lime Spots","2026"],["Pinstripe","2026"],["Contour","2026"],[
     const el = document.createElement("div"); el.className = "hel-card"; el.setAttribute("data-helmet-item", "");
     el.innerHTML = `<svg class="hel-frame" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M1 1H99V87H64L58 99H1Z"/></svg>
       <div class="hel-reveal" aria-hidden="true"></div>
-      <div class="hel-img"><div class="hel-spr"><img src="assets/img/ht${String(i+1).padStart(2,"0")}.webp?v=2" width="1024" height="256" loading="lazy" decoding="async" alt="${name} helmet, ${yr}"></div></div>
+      <div class="hel-img"><div class="hel-spr"><img src="assets/img/ht${String(i+1).padStart(2,"0")}.webp?v=3" width="1024" height="256" loading="lazy" decoding="async" alt="${name} helmet, ${yr}"></div></div>
       <div class="hel-label"><span>${name}</span><b>${yr}</b></div>
       <a href="#helmets" aria-label="${name} helmet ${yr}"></a>`;
     cols[i % n].appendChild(el);
@@ -104,9 +104,9 @@ function heroReveal(){
   let W = 0, H = 0, dpr = Math.min(devicePixelRatio || 1, DESK ? 1.25 : 1.5), inView = true, gl = null, ctx = null, mask, m, helmet, ready = false;
   const mouse = { x: -9, y: -9 }, eased = { x: -9, y: -9 }, par = { x: 0, y: 0 }, parT = { x: 0, y: 0 };
   let op = [.5, .4];
-  let q = 1, slow = 0, last = 0, fade = 48;   // adaptive render scale: drops on slow (software) GPUs, stays 1 on real hardware
+  let q = 1, slow = 0, last = 0, fade = 48, pres = 0;   // adaptive render scale: drops on slow (software) GPUs, stays 1 on real hardware
   const size = () => { op = getComputedStyle(faceImg).objectPosition.split(" ").map(v => (parseFloat(v) || 50) / 100);
-    const r = media.getBoundingClientRect(), k = gl ? Math.min(dpr, Math.sqrt(2.1e6 / (r.width * r.height))) * q : dpr; W = Math.round(r.width * k); H = Math.round(r.height * k);
+    const r = { width: media.offsetWidth, height: media.offsetHeight }, k = gl ? Math.min(dpr, Math.sqrt(2.1e6 / (r.width * r.height))) * q : dpr; W = Math.round(r.width * k); H = Math.round(r.height * k);
     fade = parseFloat(getComputedStyle(document.documentElement).fontSize) * 3;
     if (gl) gl.resize(W, H); else if (ctx) { cvs.width = W; cvs.height = H; mask.width = Math.ceil(W / 2); mask.height = Math.ceil(H / 2); } };
   // pointer in 0..1 of the hero media box
@@ -121,11 +121,11 @@ function heroReveal(){
   };
   const use2D = async () => {
     ctx = cvs.getContext("2d"); mask = document.createElement("canvas"); m = mask.getContext("2d"); size();
-    helmet = await load("assets/img/hero_helmet.webp?v=2"); ready = true; cvs.dataset.mode = "2d";
+    helmet = await load("assets/img/hero_helmet.webp?v=3"); ready = true; cvs.dataset.mode = "2d";
   };
   const useGL = async () => {
-    await new Promise((res, rej) => { const sc = document.createElement("script"); sc.src = "hero-gl.js?v=2"; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc); });
-    const [helm, depth] = await Promise.all([load("assets/img/hero_helmet.webp?v=2"), load("assets/img/hero_depth.webp?v=2")]);
+    await new Promise((res, rej) => { const sc = document.createElement("script"); sc.src = "hero-gl.js?v=3"; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc); });
+    const [helm, depth] = await Promise.all([load("assets/img/hero_helmet.webp?v=3"), load("assets/img/hero_depth.webp?v=3")]);
     await (faceImg.decode ? faceImg.decode().catch(() => {}) : 0);
     gl = window.RVHeroGL(cvs, { face: faceImg, helmet: helm, depth }); size(); ready = true; cvs.dataset.mode = "webgl";
   };
@@ -161,7 +161,8 @@ function heroReveal(){
       const now = performance.now(), dt = now - last; last = now;
       if (dt > 28 && dt < 200) { if (++slow > 20 && q > .5) { q = Math.max(.5, q - .2); slow = 0; size(); } } else slow = Math.max(0, slow - 1);
       const r = media.getBoundingClientRect();
-      gl.render({ drops: drops.map(b => [b[0], b[1], b[2] * .42]), op, par: [par.x, par.y], scale: gsap.getProperty(faceImg, "scale") || 1, cssW: r.width, cssH: r.height, t, fade });
+      const inside = eased.x > -.2 && eased.x < 1.2 && eased.y > -.2 && eased.y < 1.2; pres += ((inside ? 1 : 0) - pres) * .06;
+      gl.render({ cur: [eased.x, eased.y], pres, drops: drops.map(b => [b[0], b[1], b[2] * .42]), op, par: [par.x, par.y], scale: gsap.getProperty(faceImg, "scale") || 1, cssW: r.width, cssH: r.height, t, fade });
       return;
     }
     // 2D trail: rebuilt every frame from recent points (an alpha-decay buffer leaves 8-bit ghosts that never clear)
@@ -187,13 +188,24 @@ function heroReveal(){
 
 /* ---------- 3.5 hero → message card ---------- */
 function heroToCard(){
-  const media = $(".hero-media"), target = $(".hero-target"), img = $$(".hero-img");
+  // transform/opacity only: the media box scales to the card (FLIP), the inner wrapper counter-scales so the
+  // picture stays undistorted, and the dark background is an overlay that fades in (no layout, no full repaints)
+  const media = $(".hero-media"), cs = $(".hero-cs"), target = $(".hero-target"), face = $(".hero-img:not(.hero-tint)"), tint = $(".hero-tint");
+  const st = { a: 0, z: 0 }; let W0 = 1, H0 = 1, SX = 1, SY = 1, KE = 1, TW = 1, TH = 1, ZT = 0;
+  const measure = () => { W0 = media.offsetWidth; H0 = media.offsetHeight; SX = target.offsetWidth / W0; SY = target.offsetHeight / H0; KE = Math.max(SX, SY);
+    TW = target.offsetWidth / KE; TH = target.offsetHeight / KE; ZT = (parseFloat(getComputedStyle($(".hero")).getPropertyValue("--zt")) || 0) * parseFloat(getComputedStyle(document.documentElement).fontSize);
+    gsap.set(tint, { width: TW, height: TH, left: (W0 - TW) / 2, top: (H0 - TH) / 2, right: "auto", bottom: "auto" }); apply(); };
+  const apply = () => { const p = st.a, sx = 1 + (SX - 1) * p, sy = 1 + (SY - 1) * p, k = Math.max(sx, sy);
+    gsap.set(media, { scaleX: sx, scaleY: sy }); gsap.set(cs, { y: ZT * (1 - st.z), scaleX: k / sx, scaleY: k / sy });
+    const f = Math.max(W0 * sx / k / TW, H0 * sy / k / TH), zs = 1 + .15 * p; gsap.set(face, { scale: zs }); gsap.set(tint, { scale: f * zs }); };
+  gsap.set(media, { xPercent: -50, yPercent: -50 });
+  ScrollTrigger.addEventListener("refreshInit", () => gsap.set(media, { scaleX: 1, scaleY: 1 }));
+  ScrollTrigger.addEventListener("refresh", measure); measure();
   const tl = gsap.timeline({ scrollTrigger: { trigger: ".hero", start: "top top", end: () => `+=${innerHeight}`, scrub: true, invalidateOnRefresh: true } });
-  tl.fromTo(media, { width: () => innerWidth, height: () => innerHeight }, { width: () => target.offsetWidth, height: () => target.offsetHeight, ease: "power1.inOut" }, 0)
-    .fromTo(img, { scale: 1 }, { scale: 1.15, ease: "power1.inOut" }, 0)
-    .fromTo(".hero-tint", { opacity: 0 }, { opacity: 1, ease: "power1.inOut" }, 0)
-    .fromTo(".hero-zoom", { top: () => getComputedStyle($(".hero")).getPropertyValue("--zt").trim() || 0 }, { top: 0, ease: "power1.inOut", duration: .5 }, 0)
-    .fromTo(".hero-stick", { backgroundColor: "#f8f8f3" }, { backgroundColor: "#282c20", ease: "power1.inOut" }, 0)
+  tl.fromTo(st, { a: 0 }, { a: 1, ease: "power1.inOut", onUpdate: apply }, 0)
+    .fromTo(st, { z: 0 }, { z: 1, ease: "power1.inOut", duration: .5, onUpdate: apply, immediateRender: false }, 0)
+    .fromTo(".hero-tint", { opacity: 0 }, { opacity: 1, ease: "power1.inOut", duration: .2, immediateRender: true }, .3)
+    .fromTo(".hero-dark", { opacity: 0 }, { opacity: 1, ease: "power1.inOut" }, 0)
     .to(".topo-hero", { opacity: 0, ease: "none", duration: .5 }, 0)
     .to(".next-race", { autoAlpha: 0, ease: "none", duration: .3 }, 0)
     .fromTo(".hero-msg", { autoAlpha: 0, y: "1rem" }, { autoAlpha: 1, y: 0, duration: .3 }, .7)
@@ -225,14 +237,18 @@ function horizontal(){
   const tween = gsap.to(track, { x: () => -(track.offsetWidth - innerWidth), ease: "none",
     scrollTrigger: { trigger: sec, start: "top top", end: "bottom bottom", scrub: 1, invalidateOnRefresh: true, onRefreshInit: setH } });
   $$(".h-img img", sec).forEach(img => {
-    gsap.fromTo(img, { x: 0 }, { x: "4rem", ease: "none", scrollTrigger: { trigger: img.closest(".h-item"), containerAnimation: tween, start: "left right", end: "right left", scrub: true } });
+    const t = gsap.fromTo(img, { x: 0 }, { x: "4rem", ease: "none", scrollTrigger: { trigger: img.closest(".h-item"), containerAnimation: tween, start: "left right", end: "right left", scrub: .6 } });
+    // parallax waits for the clip reveal to finish (moving an image under an animated clip-path repaints it every frame), then eases in
+    const w = img.closest("[data-img-hl]"); if (w) { w._st = t.scrollTrigger; t.scrollTrigger.disable(false); }
   });
   $$("[data-high]", sec).forEach((el, i) => {
     ScrollTrigger.create(i < 1 ? { trigger: sec, start: "top 60%", once: true, onEnter: () => el._hl && el._hl.play() }
       : { trigger: el, containerAnimation: tween, start: "left 95%", once: true, onEnter: () => el._hl && el._hl.play() });
   });
   $$("[data-img-hl]", sec).forEach(w => imgHL(w, { trigger: w, containerAnimation: tween, start: "left 90%" }));
-  gsap.fromTo(sec, { backgroundColor: "#282c20", color: "#f4f4ed" }, { backgroundColor: "#f4f4ed", color: "#111112", ease: "none",
+  // dark → light: an opacity overlay instead of tweening the section background/text colour (no full-section repaints)
+  const light = document.createElement("div"); light.className = "horiz-light"; light.setAttribute("aria-hidden", "true"); $(".horiz-stick", sec).prepend(light);
+  gsap.fromTo(light, { opacity: 0 }, { opacity: 1, ease: "none",
     scrollTrigger: { trigger: sec, start: "top top", end: "bottom bottom", scrub: true, onUpdate: s => sec.classList.toggle("is-light", s.progress > .5) } });
   gsap.to(".topo-horiz", { opacity: .25, ease: "none", scrollTrigger: { trigger: sec, start: "top top", end: "bottom bottom", scrub: true } });
   return tween;
@@ -245,7 +261,8 @@ function imgHL(w, st){
   w.appendChild(cover);
   gsap.set(w, { clipPath: "ellipse(120% 0% at 50% 0%)" });
   gsap.set(cover, { clipPath: "ellipse(120% 120% at 50% 100%)" });
-  gsap.timeline({ scrollTrigger: { ...st, once: true } })
+  // once revealed, drop the clip-path: a clipped parent forces its (parallax-moving) image to repaint every frame
+  gsap.timeline({ scrollTrigger: { ...st, once: true }, onComplete(){ gsap.set(w, { clearProps: "clipPath" }); cover.remove(); if (w._st) w._st.enable(); } })
     .to(w, { clipPath: "ellipse(120% 120% at 50% 0%)", duration: .8, ease: "power2.out" })
     .to(cover, { clipPath: "ellipse(120% 0% at 50% 100%)", duration: .6, ease: "power2.out" }, "-=0.4");
 }
@@ -344,7 +361,7 @@ function scrollIndicator(){
   let dh = 0, raf = 0; const measure = () => { dh = document.documentElement.scrollHeight; }; measure();
   addEventListener("resize", measure); ScrollTrigger.addEventListener("refresh", measure);
   const upd = () => { raf = 0; const vh = innerHeight, h = Math.max(.1, Math.min(.25, vh / dh));
-    th.style.height = h * 100 + "%"; const p = scrollY / Math.max(1, dh - vh);
+    if (h !== th._h) { th._h = h; th.style.height = h * 100 + "%"; } const p = scrollY / Math.max(1, dh - vh);
     gsap.to(th, { y: p * (bar.offsetHeight * (1 - h)), duration: .3, ease: "power2.out", overwrite: true });
     gsap.to(bar, { autoAlpha: 1, duration: .5, overwrite: "auto" }); clearTimeout(hide);
     hide = setTimeout(() => gsap.to(bar, { autoAlpha: 0, duration: .5 }), 500);
@@ -372,7 +389,7 @@ function anchors(){
 /* ---------- reduced motion: final states ---------- */
 function reducedSetup(){
   $(".hero-canvas").style.display = "none";
-  gsap.set(".hero-media", { width: "100%", height: "100%" });
+  
   $(".hero .signature").style.display = "none";
   const k = innerWidth <= 479 ? .3 : innerWidth <= 991 ? .5 : 1;
   $$(".fan-c").forEach((c, i) => { const p = FAN[i]; c.style.zIndex = p.z; gsap.set(c, { x: p.x * k + "rem", y: p.y * (k < 1 ? .6 : 1) + "rem", scale: p.s, rotation: p.r }); });
