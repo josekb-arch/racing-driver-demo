@@ -136,10 +136,11 @@ function heroReveal(){
 
 /* ---------- 3.5 hero → message card ---------- */
 function heroToCard(){
-  const media = $(".hero-media"), target = $(".hero-target"), img = $(".hero-img");
+  const media = $(".hero-media"), target = $(".hero-target"), img = $$(".hero-img");
   const tl = gsap.timeline({ scrollTrigger: { trigger: ".hero", start: "top top", end: () => `+=${innerHeight}`, scrub: true, invalidateOnRefresh: true } });
   tl.fromTo(media, { width: () => innerWidth, height: () => innerHeight }, { width: () => target.offsetWidth, height: () => target.offsetHeight, ease: "power1.inOut" }, 0)
-    .fromTo(img, { scale: 1, filter: "grayscale(0) sepia(0) hue-rotate(0deg) brightness(1)" }, { scale: 1.15, filter: "grayscale(1) sepia(0.3) hue-rotate(35deg) brightness(0.82)", ease: "power1.inOut", immediateRender: false }, 0)
+    .fromTo(img, { scale: 1 }, { scale: 1.15, ease: "power1.inOut" }, 0)
+    .fromTo(".hero-tint", { opacity: 0 }, { opacity: 1, ease: "power1.inOut" }, 0)
     .fromTo(".hero-stick", { backgroundColor: "#f8f8f3" }, { backgroundColor: "#282c20", ease: "power1.inOut" }, 0)
     .to(".topo-hero", { opacity: 0, ease: "none", duration: .5 }, 0)
     .to(".next-race", { autoAlpha: 0, ease: "none", duration: .3 }, 0)
