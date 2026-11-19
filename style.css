@@ -1,6 +1,6 @@
-@font-face{font-family:"Mona Sans";src:url(fonts/monasans.woff2?v=1) format("woff2");font-weight:200 900;font-stretch:75% 125%;font-display:swap}
-@font-face{font-family:"Instrument Serif";src:url(fonts/instrumentserif.woff2?v=1) format("woff2");font-weight:400;font-display:swap}
-@font-face{font-family:"Caveat Brush";src:url(fonts/caveatbrush.woff2?v=1) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Mona Sans";src:url(fonts/monasans.woff2?v=1c) format("woff2");font-weight:200 900;font-stretch:75% 125%;font-display:swap}
+@font-face{font-family:"Instrument Serif";src:url(fonts/instrumentserif.woff2?v=1c) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Caveat Brush";src:url(fonts/caveatbrush.woff2?v=1c) format("woff2");font-weight:400;font-display:swap}
 :root{
   --lime:#d2ff00;--lime-off:#b2c73a;--dg:#282c20;--dg1:#3b3c38;--dg2:#535450;--white:#f4f4ed;--black:#111112;--cream:#efefe5;
   --ow1:#dde1d2;--ow2:#b4b8a5;--grey1:#ebeee0;--grey2:#c8cbbd;--hero:#f8f8f3;--topo:#cbcbb9;
@@ -24,7 +24,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .mona{font-family:var(--mona)}
 .c-lime{color:var(--lime)}
 .eyebrow{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin:0}
-.topo{position:absolute;inset:0;pointer-events:none;-webkit-mask:url(assets/topo.svg?v=1) center/cover no-repeat;mask:url(assets/topo.svg?v=1) center/cover no-repeat}
+.topo{position:absolute;inset:0;pointer-events:none;-webkit-mask:url(assets/topo.svg?v=1c) center/cover no-repeat;mask:url(assets/topo.svg?v=1c) center/cover no-repeat}
 .topo-hero{background:var(--topo);opacity:.8}
 .topo-dark{background:#363b25}
 .topo-light{background:var(--topo);opacity:.7}
