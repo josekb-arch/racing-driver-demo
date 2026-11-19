@@ -97,7 +97,8 @@ function heroReveal(){
   const helmet = new Image(); helmet.decoding = "async"; helmet.src = "assets/img/hero_helmet.webp?v=1";
   let W = 0, H = 0, dpr = Math.min(devicePixelRatio || 1, 1.5), ready = false, inView = true;
   const mouse = { x: -9999, y: -9999 }, eased = { x: -9999, y: -9999 };
-  const size = () => { const r = media.getBoundingClientRect(); W = cvs.width = mask.width = Math.round(r.width * dpr); H = cvs.height = mask.height = Math.round(r.height * dpr); };
+  let op = [.5, .4];
+  const size = () => { op = getComputedStyle($(".hero-img")).objectPosition.split(" ").map(v => (parseFloat(v) || 50) / 100); const r = media.getBoundingClientRect(); W = cvs.width = mask.width = Math.round(r.width * dpr); H = cvs.height = mask.height = Math.round(r.height * dpr); };
   size(); addEventListener("resize", size);
   helmet.onload = () => { ready = true; };
   if (FINE) media.parentElement.addEventListener("pointermove", e => { if (auto) return; const r = media.getBoundingClientRect(); mouse.x = (e.clientX - r.left) * dpr; mouse.y = (e.clientY - r.top) * dpr; });
@@ -109,7 +110,7 @@ function heroReveal(){
       onComplete(){ auto = !FINE; if (!FINE) gsap.to(sweep, { p: 0, duration: 3, ease: "sine.inOut", repeat: -1, yoyo: true, delay: 1.5, onUpdate(){ const p = sweep.p; mouse.x = W * (.42 + .16 * p); mouse.y = H * (.34 + .1 * Math.sin(p * 6)); } }); } });
   };
   ScrollTrigger.create({ trigger: ".hero", start: "top top", end: "bottom top", onToggle: s => inView = s.isActive });
-  const cover = () => { const ir = helmet.width / helmet.height, cr = W / H; let w, h; if (cr > ir) { w = W; h = W / ir; } else { h = H; w = H * ir; } return [(W - w) * .5, (H - h) * .4, w, h]; };
+  const cover = () => { const ir = helmet.width / helmet.height, cr = W / H; let w, h; if (cr > ir) { w = W; h = W / ir; } else { h = H; w = H * ir; } return [(W - w) * op[0], (H - h) * op[1], w, h]; };
   let t = 0;
   gsap.ticker.add(() => {
     if (!ready || !inView || !heroActive) return;
@@ -175,7 +176,7 @@ function horizontal(){
   });
   $$("[data-img-hl]", sec).forEach(w => imgHL(w, { trigger: w, containerAnimation: tween, start: "left 90%" }));
   gsap.fromTo(sec, { backgroundColor: "#282c20", color: "#f4f4ed" }, { backgroundColor: "#f4f4ed", color: "#111112", ease: "none",
-    scrollTrigger: { trigger: sec, start: "top top", end: "bottom bottom", scrub: true, onUpdate: s => { sec.classList.toggle("is-light", s.progress > .5); if (s.isActive) setNav(s.progress > .5 ? "light" : "dark"); } } });
+    scrollTrigger: { trigger: sec, start: "top top", end: "bottom bottom", scrub: true, onUpdate: s => sec.classList.toggle("is-light", s.progress > .5) } });
   gsap.to(".topo-horiz", { opacity: .25, ease: "none", scrollTrigger: { trigger: sec, start: "top top", end: "bottom bottom", scrub: true } });
   return tween;
 }
@@ -272,10 +273,13 @@ function socialsFan(){
 const nav = $(".nav");
 function setNav(theme){ nav.classList.toggle("is-dark", theme === "dark"); }
 function navTheme(){
-  $$("[data-nav]").forEach(sec => { if (sec.matches("[data-horizontal]") && DESK) return;
-    ScrollTrigger.create({ trigger: sec, start: "top 2.5rem", end: "bottom 2.5rem", onToggle: s => s.isActive && setNav(sec.dataset.nav) }); });
-  // hero turns dark once the card forms
-  ScrollTrigger.create({ trigger: ".hero", start: () => `top+=${innerHeight * .5} top`, end: "bottom 2.5rem", onToggle: s => setNav(s.isActive ? "dark" : (s.direction < 0 ? "light" : "dark")) });
+  const secs = $$("[data-nav]"), hero = $(".hero"); let raf = 0;
+  const upd = () => { raf = 0; const y = 40; let theme = "light";
+    for (const sec of secs) { const r = sec.getBoundingClientRect(); if (r.top <= y && r.bottom > y) {
+      theme = sec === hero ? (scrollY > innerHeight * .5 ? "dark" : "light")
+        : (sec.matches("[data-horizontal]") && DESK) ? (sec.classList.contains("is-light") ? "light" : "dark") : sec.dataset.nav; break; } }
+    setNav(theme); };
+  addEventListener("scroll", () => { if (!raf) raf = requestAnimationFrame(upd); }, { passive: true }); upd();
 }
 function scrollIndicator(){
   const bar = $(".scroll-ind"), th = $("i", bar); let hide;
@@ -336,7 +340,7 @@ async function init(){
   await Promise.race([heroImg.decode ? heroImg.decode().catch(() => {}) : Promise.resolve(), new Promise(r => setTimeout(r, 1200))]);
   gsap.timeline({ delay: .35 })
     .to(".loader", { clipPath: "ellipse(0% 0% at 50% 50%)", duration: .8, ease: "expo.inOut", onComplete(){ $(".loader").remove(); document.body.classList.remove("is-loading"); } })
-    .fromTo(".hero-img", { scale: 1.08 }, { scale: 1, duration: 1.1, ease: "expo.out", clearProps: "scale" }, .35)
+    .fromTo([".hero-img", ".hero-canvas"], { scale: 1.08 }, { scale: 1, duration: 1.1, ease: "expo.out", clearProps: "scale" }, .35)
     .add(() => heroReveal.start && heroReveal.start(), .6);
 }
 init();
