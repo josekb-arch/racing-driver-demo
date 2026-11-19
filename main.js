@@ -108,7 +108,7 @@ function heroReveal(){
   const size = () => { op = getComputedStyle(faceImg).objectPosition.split(" ").map(v => (parseFloat(v) || 50) / 100);
     const r = media.getBoundingClientRect(), k = gl ? Math.min(dpr, Math.sqrt(2.1e6 / (r.width * r.height))) * q : dpr; W = Math.round(r.width * k); H = Math.round(r.height * k);
     fade = parseFloat(getComputedStyle(document.documentElement).fontSize) * 3;
-    if (gl) gl.resize(W, H); else if (ctx) { cvs.width = mask.width = W; cvs.height = mask.height = H; } };
+    if (gl) gl.resize(W, H); else if (ctx) { cvs.width = W; cvs.height = H; mask.width = Math.ceil(W / 2); mask.height = Math.ceil(H / 2); } };
   // pointer in 0..1 of the hero media box
   if (FINE) media.parentElement.addEventListener("pointermove", e => { if (auto) return; const r = media.getBoundingClientRect();
     mouse.x = (e.clientX - r.left) / r.width; mouse.y = (e.clientY - r.top) / r.height;
@@ -145,7 +145,7 @@ function heroReveal(){
   };
   ScrollTrigger.create({ trigger: ".hero", start: "top top", end: "bottom top", onToggle: s => inView = s.isActive });
   const cover = () => { const ir = helmet.width / helmet.height, cr = W / H; let w, h; if (cr > ir) { w = W; h = W / ir; } else { h = H; w = H * ir; } return [(W - w) * op[0], (H - h) * op[1], w, h]; };
-  let t = 0;
+  let t = 0; const trail = [];
   gsap.ticker.add(() => {
     if (!ready || !inView || !heroActive) return;
     t += .016;
@@ -164,12 +164,18 @@ function heroReveal(){
       gl.render({ drops: drops.map(b => [b[0], b[1], b[2] * .42]), op, par: [par.x, par.y], scale: gsap.getProperty(faceImg, "scale") || 1, cssW: r.width, cssH: r.height, t, fade });
       return;
     }
-    m.globalCompositeOperation = "destination-out"; m.fillStyle = "rgba(0,0,0,.035)"; m.fillRect(0, 0, W, H);
-    m.globalCompositeOperation = "source-over";
-    drops.forEach(([bx, by, br]) => { const x = bx * W, y = by * H, rr = br * H;
-      const g = m.createRadialGradient(x, y, 0, x, y, rr); g.addColorStop(0, "rgba(0,0,0,.9)"); g.addColorStop(.6, "rgba(0,0,0,.7)"); g.addColorStop(1, "rgba(0,0,0,0)");
-      m.fillStyle = g; m.beginPath(); m.arc(x, y, rr, 0, 6.2832); m.fill(); });
-    ctx.clearRect(0, 0, W, H); ctx.globalCompositeOperation = "source-over"; ctx.drawImage(mask, 0, 0);
+    // 2D trail: rebuilt every frame from recent points (an alpha-decay buffer leaves 8-bit ghosts that never clear)
+    const now2 = performance.now();
+    if (!trail.length || Math.hypot(eased.x - trail[trail.length - 1][0], eased.y - trail[trail.length - 1][1]) > .004) trail.push([eased.x, eased.y, now2]);
+    while (trail.length && now2 - trail[0][2] > 1100) trail.shift();
+    if (trail.length > 48) trail.splice(0, trail.length - 48);
+    m.clearRect(0, 0, mask.width, mask.height);
+    const MW = mask.width, MH = mask.height, blob = (x, y, rr, a) => { const g = m.createRadialGradient(x, y, 0, x, y, rr);
+      g.addColorStop(0, `rgba(0,0,0,${.9 * a})`); g.addColorStop(.6, `rgba(0,0,0,${.7 * a})`); g.addColorStop(1, "rgba(0,0,0,0)");
+      m.fillStyle = g; m.beginPath(); m.arc(x, y, rr, 0, 6.2832); m.fill(); };
+    for (let i = 0; i < trail.length - 1; i += 2) { const [x, y, tt] = trail[i], a = Math.pow(1 - (now2 - tt) / 1100, 1.5); blob(x * MW, y * MH, R * MH * .9, a * .8); }
+    drops.forEach(([bx, by, br]) => blob(bx * MW, by * MH, br * MH, 1));
+    ctx.clearRect(0, 0, W, H); ctx.globalCompositeOperation = "source-over"; ctx.drawImage(mask, 0, 0, W, H);
     ctx.globalCompositeOperation = "source-in"; const c = cover(); ctx.drawImage(helmet, c[0], c[1], c[2], c[3]);
   });
   // like the original: cursor effect switches off after ~44% of a screen
