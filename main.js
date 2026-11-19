@@ -277,6 +277,7 @@ function navTheme(){
   const upd = () => { raf = 0; const y = 40; let theme = "light";
     for (const sec of secs) { const r = sec.getBoundingClientRect(); if (r.top <= y && r.bottom > y) {
       theme = sec === hero ? (scrollY > innerHeight * .5 ? "dark" : "light")
+        : sec.matches(".footer") ? ($(".foot-card").getBoundingClientRect().top <= y ? "dark" : "light")
         : (sec.matches("[data-horizontal]") && DESK) ? (sec.classList.contains("is-light") ? "light" : "dark") : sec.dataset.nav; break; } }
     setNav(theme); };
   addEventListener("scroll", () => { if (!raf) raf = requestAnimationFrame(upd); }, { passive: true }); upd();
