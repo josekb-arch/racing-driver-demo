@@ -57,7 +57,9 @@ window.RVHeroGL = function(canvas, imgs){
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     if (src) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src); return t; };
-  const TF = tex(imgs.face), TH = tex(imgs.helmet), TD = tex(imgs.depth);
+  // textures can be uploaded one per idle slot (api.uploadNext) so a phone never takes the whole hit in one frame
+  const TF = tex(null), TH = tex(null), TD = tex(null), pend = [[TD, imgs.depth], [TH, imgs.helmet], [TF, imgs.face]];
+  const upload = () => { const [t, src] = pend.shift(); gl.bindTexture(gl.TEXTURE_2D, t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src); };
   let fb = [], tw = 0, th = 0, cur = 0;
   const mkFB = () => { fb.forEach(f => { gl.deleteTexture(f.t); gl.deleteFramebuffer(f.f); }); fb = [0, 1].map(() => { const t = tex(null);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, tw, th, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
@@ -65,9 +67,11 @@ window.RVHeroGL = function(canvas, imgs){
       gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT); return { t, f }; }); gl.bindFramebuffer(gl.FRAMEBUFFER, null); };
   const quad = P => { const l = gl.getAttribLocation(P.p, "p"); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, 2, gl.FLOAT, false, 0, 0); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); };
   const api = {
+    uploadNext(){ if (pend.length) upload(); return !pend.length; },
     resize(w, h){ canvas.width = w; canvas.height = h; tw = Math.max(64, w >> 2); th = Math.max(64, h >> 2); mkFB(); },
     // s: {drops:[[x,y,r]...] in 0..1 (x right, y down), op:[x,y], par:[x,y], scale, cssW, cssH, t}
     render(s){
+      while (pend.length) upload();
       const src = fb[cur], dst = fb[1 - cur];
       gl.bindFramebuffer(gl.FRAMEBUFFER, dst.f); gl.viewport(0, 0, tw, th); gl.useProgram(PT.p);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, src.t); gl.uniform1i(PT.U.prev, 0);

@@ -101,10 +101,10 @@ let heroActive = true;
 function heroReveal(){
   const media = $(".hero-zoom"), faceImg = $(".hero-img"); let cvs = $(".hero-canvas");
   const load = src => new Promise((res, rej) => { const i = new Image(); i.decoding = "async"; i.onload = () => res(i); i.onerror = rej; i.src = src; });
-  let W = 0, H = 0, dpr = Math.min(devicePixelRatio || 1, DESK ? 1.25 : 1.5), inView = true, gl = null, ctx = null, mask, m, helmet, ready = false;
+  let W = 0, H = 0, dpr = Math.min(devicePixelRatio || 1, DESK ? 1.25 : 1.25), inView = true, gl = null, ctx = null, mask, m, helmet, ready = false;
   const mouse = { x: -9, y: -9 }, eased = { x: -9, y: -9 }, par = { x: 0, y: 0 }, parT = { x: 0, y: 0 };
   let op = [.5, .4];
-  let q = 1, slow = 0, last = 0, fade = 48, pres = 0;   // adaptive render scale: drops on slow (software) GPUs, stays 1 on real hardware
+  let q = 1, slow = 0, last = 0, fade = 48, pres = 0, fr = 0;   // adaptive render scale: drops on slow (software) GPUs, stays 1 on real hardware
   const size = () => { op = getComputedStyle(faceImg).objectPosition.split(" ").map(v => (parseFloat(v) || 50) / 100);
     const r = { width: media.offsetWidth, height: media.offsetHeight }, k = gl ? Math.min(dpr, Math.sqrt(2.1e6 / (r.width * r.height))) * q : dpr; W = Math.round(r.width * k); H = Math.round(r.height * k);
     fade = parseFloat(getComputedStyle(document.documentElement).fontSize) * 3;
@@ -123,11 +123,13 @@ function heroReveal(){
     ctx = cvs.getContext("2d"); mask = document.createElement("canvas"); m = mask.getContext("2d"); size();
     helmet = await load("assets/img/hero_helmet.webp?v=3"); ready = true; cvs.dataset.mode = "2d";
   };
-  const useGL = async () => {
+  const useGL = async (staged) => {
     await new Promise((res, rej) => { const sc = document.createElement("script"); sc.src = "hero-gl.js?v=3"; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc); });
     const [helm, depth] = await Promise.all([load("assets/img/hero_helmet.webp?v=3"), load("assets/img/hero_depth.webp?v=3")]);
     await (faceImg.decode ? faceImg.decode().catch(() => {}) : 0);
-    gl = window.RVHeroGL(cvs, { face: faceImg, helmet: helm, depth }); size(); ready = true; cvs.dataset.mode = "webgl";
+    const g = window.RVHeroGL(cvs, { face: faceImg, helmet: helm, depth });
+    if (staged) { while (!g.uploadNext()) await new Promise(r => staged(r)); await new Promise(r => staged(r)); }
+    gl = g; size(); ready = true; cvs.dataset.mode = "webgl";
   };
   addEventListener("resize", () => size());
   const canGL = () => { if (/[?&]gl=0/.test(location.search)) return false; try { return !!document.createElement("canvas").getContext("webgl"); } catch (e) { return false; } };
@@ -136,9 +138,18 @@ function heroReveal(){
     else {
       // touch devices: start with the light 2D trail; upgrade to WebGL on the first touch (keeps the first load cheap)
       await use2D();
-      if (canGL()) { const up = async () => { ["touchstart", "pointerdown", "keydown"].forEach(ev => removeEventListener(ev, up));
-          const fresh = cvs.cloneNode(); fresh.removeAttribute("data-mode"); const oldC = cvs;
-          try { cvs = fresh; ready = false; await useGL(); oldC.replaceWith(fresh); ctx = null; } catch (e) { cvs = oldC; gl = null; ready = true; } };
+      if (canGL()) {
+        // the swap (script, textures, shader compile) is heavy on slow phones: never do it while the page is moving.
+        // Wait for 0.5 s without scroll, the hero effect zone in view, and an idle slot.
+        let lastS = 0, busy = false; addEventListener("scroll", () => { lastS = performance.now(); }, { passive: true });
+        const idle = fn => (window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 2000 }) : setTimeout(fn, 200));
+        // run fn in an idle slot once the page has been still for 0.5 s
+        const calm = fn => { const w = () => (performance.now() - lastS < 500 ? setTimeout(w, 250) : idle(() => (performance.now() - lastS < 500 ? setTimeout(w, 250) : fn()))); w(); };
+        const swap = async () => { const fresh = cvs.cloneNode(); fresh.removeAttribute("data-mode"); const oldC = cvs;
+          try { cvs = fresh; await useGL(calm); oldC.replaceWith(fresh); ctx = null; } catch (e) { cvs = oldC; gl = null; ready = true; } };
+        const tryUp = () => { if (performance.now() - lastS < 500 || !heroActive || !inView) { setTimeout(tryUp, 300); return; }
+          idle(() => { if (performance.now() - lastS < 500 || !heroActive) { setTimeout(tryUp, 300); return; } swap(); }); };
+        const up = () => { if (busy) return; busy = true; ["touchstart", "pointerdown", "keydown"].forEach(ev => removeEventListener(ev, up)); tryUp(); };
         ["touchstart", "pointerdown", "keydown"].forEach(ev => addEventListener(ev, up, { passive: true })); }
     }
     startSweep();
@@ -158,6 +169,7 @@ function heroReveal(){
       drops.push([eased.x + Math.cos(a) * off / asp, eased.y + Math.sin(a * 1.2) * off, R * (.55 + .35 * Math.sin(t * 1.7 + k * 2))]);
     }
     if (gl) {
+      if (!FINE && (++fr & 1)) return;   // phones: liquid at 30 fps, leaves the main thread free for scrolling
       const now = performance.now(), dt = now - last; last = now;
       if (dt > 28 && dt < 200) { if (++slow > 20 && q > .5) { q = Math.max(.5, q - .2); slow = 0; size(); } } else slow = Math.max(0, slow - 1);
       const r = media.getBoundingClientRect();
